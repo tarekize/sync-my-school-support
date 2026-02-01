@@ -188,36 +188,30 @@ export function useLinkedChildren() {
   const addChildByCode = async (code: string): Promise<{ success: boolean; message: string }> => {
     if (!user) return { success: false, message: "Non authentifié" };
 
-    try {
-      // Find child by linking code
-      const { data: childProfile, error: findError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("linking_code", code.toUpperCase())
-        .single();
+    const trimmedCode = code.trim();
+    
+    // Validate code format (8 hex characters)
+    if (!/^[a-f0-9]{8}$/i.test(trimmedCode)) {
+      return { success: false, message: "Format de code invalide (8 caractères attendus)" };
+    }
 
-      if (findError || !childProfile) {
-        return { success: false, message: "Code de liaison invalide" };
+    try {
+      // Call the edge function to link child by code (bypasses RLS)
+      const { data, error } = await supabase.functions.invoke("link-child-by-code", {
+        body: { code: trimmedCode },
+      });
+
+      if (error) {
+        console.error("Edge function error:", error);
+        return { success: false, message: error.message || "Erreur lors de la liaison" };
       }
 
-      // Create parent-child link
-      const { error: insertError } = await supabase
-        .from("parent_child_links")
-        .insert({
-          parent_id: user.id,
-          child_id: childProfile.id,
-          status: "pending",
-        });
-
-      if (insertError) {
-        if (insertError.code === "23505") {
-          return { success: false, message: "Ce lien existe déjà" };
-        }
-        throw insertError;
+      if (data?.error) {
+        return { success: false, message: data.error };
       }
 
       await fetchChildren();
-      return { success: true, message: "Demande de liaison envoyée" };
+      return { success: true, message: data?.message || "Demande de liaison envoyée" };
     } catch (error: any) {
       console.error("Error adding child by code:", error);
       return { success: false, message: error.message };

@@ -179,54 +179,45 @@ const ParentDashboard = () => {
   };
 
   const handleAddByCode = async () => {
-    if (!code.trim()) {
+    const trimmedCode = code.trim();
+    if (!trimmedCode) {
       sonnerToast.error("Veuillez entrer un code");
       return;
     }
 
     if (!user) return;
 
+    // Validate code format (8 hex characters)
+    if (!/^[a-f0-9]{8}$/i.test(trimmedCode)) {
+      sonnerToast.error("Format de code invalide (8 caractères attendus)");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      // Find child by linking code (case-insensitive comparison)
-      const { data: childProfile, error: findError } = await supabase
-        .from("profiles")
-        .select("id")
-        .ilike("linking_code", code.trim())
-        .maybeSingle();
+      // Call the edge function to link child by code (bypasses RLS)
+      const { data, error } = await supabase.functions.invoke("link-child-by-code", {
+        body: { code: trimmedCode },
+      });
 
-      if (findError || !childProfile) {
-        sonnerToast.error("Code de liaison invalide");
-        setSubmitting(false);
+      if (error) {
+        console.error("Edge function error:", error);
+        sonnerToast.error(error.message || "Erreur lors de la liaison");
         return;
       }
 
-      // Create parent-child link
-      const { error: insertError } = await supabase
-        .from("parent_child_links")
-        .insert({
-          parent_id: user.id,
-          child_id: childProfile.id,
-          status: "pending",
-        });
-
-      if (insertError) {
-        if (insertError.code === "23505") {
-          sonnerToast.error("Ce lien existe déjà");
-        } else {
-          throw insertError;
-        }
-        setSubmitting(false);
+      if (data?.error) {
+        sonnerToast.error(data.error);
         return;
       }
 
-      sonnerToast.success("Demande de liaison envoyée");
+      sonnerToast.success(data?.message || "Demande de liaison envoyée");
       setCode("");
       setDialogOpen(false);
       fetchChildren(user.id);
     } catch (error: any) {
       console.error("Error adding child by code:", error);
-      sonnerToast.error(error.message);
+      sonnerToast.error(error.message || "Erreur inattendue");
     } finally {
       setSubmitting(false);
     }
