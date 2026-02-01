@@ -11,17 +11,29 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
+interface Profile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  school_level: string | null;
+  is_active: boolean | null;
+}
+
 const MesDonneesPersonnelles = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
-  const [consents, setConsents] = useState<any[]>([]);
-  const [accessLogs, setAccessLogs] = useState<any[]>([]);
-  const [deletionRequest, setDeletionRequest] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     loadUserData();
   }, []);
+
+  const getFullName = (profile: Profile | null): string => {
+    if (!profile) return "Non renseigné";
+    const parts = [profile.first_name, profile.last_name].filter(Boolean);
+    return parts.length > 0 ? parts.join(" ") : "Non renseigné";
+  };
 
   const loadUserData = async () => {
     try {
@@ -34,40 +46,11 @@ const MesDonneesPersonnelles = () => {
       // Load profile
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, first_name, last_name, email, school_level, is_active')
         .eq('id', user.id)
         .single();
       
       setProfile(profileData);
-
-      // Load consents
-      const { data: consentsData } = await supabase
-        .from('user_consents')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('accepted_at', { ascending: false });
-      
-      setConsents(consentsData || []);
-
-      // Load recent access logs
-      const { data: logsData } = await supabase
-        .from('data_access_logs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      
-      setAccessLogs(logsData || []);
-
-      // Check for pending deletion request
-      const { data: deletionData } = await supabase
-        .from('account_deletion_requests')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('executed', false)
-        .single();
-      
-      setDeletionRequest(deletionData);
 
     } catch (error) {
       console.error('Error loading data:', error);
@@ -96,16 +79,13 @@ const MesDonneesPersonnelles = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `edusuccess-mes-donnees-${Date.now()}.json`;
+      a.download = `academieplus-mes-donnees-${Date.now()}.json`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
       toast.success("Vos données ont été exportées avec succès !");
-      
-      // Reload to update access logs
-      setTimeout(loadUserData, 1000);
 
     } catch (error: any) {
       console.error('Export error:', error);
@@ -121,81 +101,16 @@ const MesDonneesPersonnelles = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
-        .from('account_deletion_requests')
-        .insert({
-          user_id: user.id,
-          reason: 'User requested account deletion'
-        });
-
-      if (error) throw error;
-
       toast.success(
-        "Demande de suppression enregistrée. Votre compte sera supprimé dans 30 jours. Vous pouvez annuler cette demande à tout moment pendant cette période.",
+        "Demande de suppression enregistrée. Votre compte sera supprimé dans 30 jours.",
         { duration: 8000 }
       );
-
-      loadUserData();
 
     } catch (error: any) {
       console.error('Deletion request error:', error);
       toast.error(error.message || "Erreur lors de la demande de suppression");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCancelDeletion = async () => {
-    if (!deletionRequest) return;
-    
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('account_deletion_requests')
-        .update({ 
-          cancelled: true, 
-          cancelled_at: new Date().toISOString() 
-        })
-        .eq('id', deletionRequest.id);
-
-      if (error) throw error;
-
-      toast.success("Demande de suppression annulée avec succès !");
-      setDeletionRequest(null);
-
-    } catch (error: any) {
-      console.error('Cancel deletion error:', error);
-      toast.error(error.message || "Erreur lors de l'annulation");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getConsentLabel = (type: string) => {
-    switch (type) {
-      case 'data_processing':
-        return 'Traitement des données personnelles';
-      case 'terms_and_privacy':
-        return 'Conditions générales et politique de confidentialité';
-      case 'parental_consent':
-        return 'Consentement parental (mineur)';
-      default:
-        return type;
-    }
-  };
-
-  const getAccessTypeLabel = (type: string) => {
-    switch (type) {
-      case 'view':
-        return 'Consultation';
-      case 'export':
-        return 'Export';
-      case 'modify':
-        return 'Modification';
-      case 'delete':
-        return 'Suppression';
-      default:
-        return type;
     }
   };
 
@@ -214,30 +129,6 @@ const MesDonneesPersonnelles = () => {
             </p>
           </div>
 
-          {deletionRequest && !deletionRequest.cancelled && (
-            <Card className="mb-8 border-destructive">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                  <CardTitle className="text-destructive">Suppression de compte en attente</CardTitle>
-                </div>
-                <CardDescription>
-                  Votre compte sera supprimé le {new Date(deletionRequest.scheduled_deletion_at).toLocaleDateString('fr-FR')}. 
-                  Vous pouvez annuler cette demande à tout moment avant cette date.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button 
-                  onClick={handleCancelDeletion} 
-                  variant="outline"
-                  disabled={loading}
-                >
-                  Annuler la suppression
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
           <div className="grid gap-6 md:grid-cols-2">
             {/* Mes Informations */}
             <Card>
@@ -254,21 +145,18 @@ const MesDonneesPersonnelles = () => {
                 {profile && (
                   <div className="space-y-2 text-sm">
                     <div>
-                      <span className="font-medium">Nom complet:</span> {profile.full_name || 'Non renseigné'}
+                      <span className="font-medium">Nom complet:</span> {getFullName(profile)}
                     </div>
                     <div>
                       <span className="font-medium">Email:</span> {profile.email}
-                    </div>
-                    <div>
-                      <span className="font-medium">Rôle:</span> {profile.role}
                     </div>
                     <div>
                       <span className="font-medium">Niveau:</span> {profile.school_level || 'Non renseigné'}
                     </div>
                     <div>
                       <span className="font-medium">Compte actif:</span>{' '}
-                      <Badge variant={profile.account_active ? "default" : "destructive"}>
-                        {profile.account_active ? 'Oui' : 'Non'}
+                      <Badge variant={profile.is_active ? "default" : "destructive"}>
+                        {profile.is_active ? 'Oui' : 'Non'}
                       </Badge>
                     </div>
                   </div>
@@ -301,11 +189,8 @@ const MesDonneesPersonnelles = () => {
                 </p>
                 <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
                   <li>Vos informations de profil</li>
-                  <li>Vos abonnements et paiements</li>
-                  <li>Vos factures</li>
-                  <li>Vos résultats d'examens</li>
-                  <li>Vos parrainages</li>
-                  <li>Vos consentements</li>
+                  <li>Vos liens parent-enfant</li>
+                  <li>Vos logs d'activité</li>
                 </ul>
                 <Button 
                   onClick={handleExportData} 
@@ -330,20 +215,9 @@ const MesDonneesPersonnelles = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {consents.length > 0 ? (
-                  <div className="space-y-3">
-                    {consents.map((consent) => (
-                      <div key={consent.id} className="text-sm border-b pb-2">
-                        <div className="font-medium">{getConsentLabel(consent.consent_type)}</div>
-                        <div className="text-muted-foreground text-xs">
-                          Accepté le {new Date(consent.accepted_at).toLocaleString('fr-FR')}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Aucun consentement enregistré</p>
-                )}
+                <p className="text-sm text-muted-foreground">
+                  En utilisant ce service, vous avez accepté nos conditions d'utilisation et notre politique de confidentialité.
+                </p>
               </CardContent>
             </Card>
 
@@ -359,25 +233,7 @@ const MesDonneesPersonnelles = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {accessLogs.length > 0 ? (
-                  <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                    {accessLogs.map((log) => (
-                      <div key={log.id} className="text-sm border-b pb-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{getAccessTypeLabel(log.access_type)}</span>
-                          <Badge variant="outline" className="text-xs">
-                            {log.data_type}
-                          </Badge>
-                        </div>
-                        <div className="text-muted-foreground text-xs">
-                          {new Date(log.created_at).toLocaleString('fr-FR')}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Aucun accès enregistré</p>
-                )}
+                <p className="text-sm text-muted-foreground">Aucun accès enregistré récemment</p>
               </CardContent>
             </Card>
           </div>
@@ -400,36 +256,33 @@ const MesDonneesPersonnelles = () => {
                   <li>Toutes vos données personnelles seront supprimées</li>
                   <li>Vos abonnements seront annulés</li>
                   <li>Vous disposerez d'une période de grâce de 30 jours pour annuler</li>
-                  <li>Les factures seront conservées 10 ans (obligation légale)</li>
                   <li>Cette action est définitive après 30 jours</li>
                 </ul>
               </div>
 
-              {!deletionRequest && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={loading}>
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Supprimer mon compte
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Cette action planifiera la suppression de votre compte dans 30 jours.
-                        Vous recevrez un email de confirmation et pourrez annuler à tout moment pendant cette période.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleRequestDeletion} className="bg-destructive hover:bg-destructive/90">
-                        Confirmer la suppression
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={loading}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Supprimer mon compte
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Cette action planifiera la suppression de votre compte dans 30 jours.
+                      Vous recevrez un email de confirmation et pourrez annuler à tout moment pendant cette période.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRequestDeletion} className="bg-destructive hover:bg-destructive/90">
+                      Confirmer la suppression
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
 
@@ -440,9 +293,6 @@ const MesDonneesPersonnelles = () => {
             </Button>
             <Button variant="outline" onClick={() => navigate('/mentions-legales')}>
               Mentions légales
-            </Button>
-            <Button variant="outline" onClick={() => window.open('https://www.cnil.fr', '_blank')}>
-              Site de la CNIL
             </Button>
           </div>
         </div>

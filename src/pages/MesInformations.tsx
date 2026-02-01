@@ -37,25 +37,23 @@ import {
   BreadcrumbLink,
   BreadcrumbList,
 } from "@/components/ui/breadcrumb";
+import { LinkedChildrenSection } from "@/components/profile/LinkedChildrenSection";
+import { LinkedParentsSection } from "@/components/profile/LinkedParentsSection";
 
 const profileSchema = z.object({
   first_name: z.string().trim().min(1, "Le prénom est requis").max(100, "Le prénom ne peut pas dépasser 100 caractères"),
   last_name: z.string().trim().min(1, "Le nom est requis").max(100, "Le nom ne peut pas dépasser 100 caractères"),
   phone: z.string().trim().max(20, "Le téléphone ne peut pas dépasser 20 caractères").optional().nullable(),
-  date_of_birth: z.string().optional().nullable(),
-  school_level: z.enum(["6ème", "5ème", "4ème", "3ème", "Seconde", "1ère", "Terminale"]).optional().nullable(),
+  school_level: z.string().optional().nullable(),
 });
 
 interface Profile {
   id: string;
   first_name: string | null;
   last_name: string | null;
-  full_name: string | null;
   email: string | null;
   phone: string | null;
-  date_of_birth: string | null;
   school_level: string | null;
-  role: string | null;
   avatar_url: string | null;
 }
 
@@ -63,6 +61,7 @@ const MesInformations = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -70,10 +69,8 @@ const MesInformations = () => {
     first_name: "",
     last_name: "",
     phone: "",
-    date_of_birth: "",
     school_level: "",
   });
-  const [dateOfBirth, setDateOfBirth] = useState<Date>();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -82,6 +79,7 @@ const MesInformations = () => {
         return;
       }
       fetchProfile(session.user.id);
+      fetchUserRole(session.user.id);
     });
 
     const {
@@ -92,6 +90,7 @@ const MesInformations = () => {
         return;
       }
       fetchProfile(session.user.id);
+      fetchUserRole(session.user.id);
     });
 
     return () => subscription.unsubscribe();
@@ -101,7 +100,7 @@ const MesInformations = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, full_name, email, phone, date_of_birth, school_level, role, avatar_url")
+        .select("id, first_name, last_name, email, phone, school_level, avatar_url")
         .eq("id", userId)
         .single();
 
@@ -111,14 +110,8 @@ const MesInformations = () => {
         first_name: data.first_name || "",
         last_name: data.last_name || "",
         phone: data.phone || "",
-        date_of_birth: data.date_of_birth || "",
         school_level: data.school_level || "",
       });
-      
-      // Set the Date object for the calendar
-      if (data.date_of_birth) {
-        setDateOfBirth(new Date(data.date_of_birth));
-      }
     } catch (error: any) {
       toast({
         title: "Erreur",
@@ -130,16 +123,37 @@ const MesInformations = () => {
     }
   };
 
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setUserRole(data.role);
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  };
+
+  const getFullName = (profile: Profile | null): string => {
+    if (!profile) return "Utilisateur";
+    const parts = [profile.first_name, profile.last_name].filter(Boolean);
+    return parts.length > 0 ? parts.join(" ") : "Utilisateur";
+  };
+
   const handleUpdate = async () => {
     try {
       setUpdating(true);
 
-      // Validation
       const validatedData = profileSchema.parse({
         first_name: formData.first_name,
         last_name: formData.last_name,
         phone: formData.phone || null,
-        date_of_birth: formData.date_of_birth || null,
         school_level: formData.school_level || null,
       });
 
@@ -150,16 +164,13 @@ const MesInformations = () => {
         .update({
           first_name: validatedData.first_name,
           last_name: validatedData.last_name,
-          full_name: `${validatedData.first_name} ${validatedData.last_name}`,
           phone: validatedData.phone,
-          date_of_birth: validatedData.date_of_birth,
           school_level: validatedData.school_level as any,
         })
         .eq("id", profile.id);
 
       if (error) throw error;
 
-      // Redirect to success page
       navigate("/update-success");
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -186,7 +197,6 @@ const MesInformations = () => {
 
       if (!profile?.id) return;
 
-      // Call edge function to delete account
       const { error } = await supabase.functions.invoke("delete-user-account", {
         body: { userId: profile.id },
       });
@@ -198,7 +208,6 @@ const MesInformations = () => {
         description: "Votre compte a été supprimé avec succès",
       });
 
-      // Sign out and redirect
       await supabase.auth.signOut();
       navigate("/");
     } catch (error: any) {
@@ -211,24 +220,17 @@ const MesInformations = () => {
     }
   };
 
-  const getRoleName = (role: string | null) => {
-    if (!role) return "Non défini";
-    const roles: { [key: string]: string } = {
-      student: "Élève",
-      parent: "Parent",
-      teacher: "Enseignant",
-      admin: "Administrateur",
-    };
-    return roles[role] || role;
-  };
-
   const getSchoolLevelName = (level: string) => {
-    const levels = {
-      cp: 'CP', ce1: 'CE1', ce2: 'CE2', cm1: 'CM1', cm2: 'CM2',
-      sixieme: '6ème', cinquieme: '5ème', quatrieme: '4ème', troisieme: '3ème',
-      seconde: 'Seconde', premiere: 'Première', terminale: 'Terminale'
+    const levels: Record<string, string> = {
+      "6eme": "6ème",
+      "5eme": "5ème",
+      "4eme": "4ème",
+      "3eme": "3ème",
+      seconde: "Seconde",
+      premiere: "Première",
+      terminale: "Terminale",
     };
-    return levels[level as keyof typeof levels] || 'Votre classe';
+    return levels[level] || level || "Votre classe";
   };
 
   const handleLogout = async () => {
@@ -248,13 +250,14 @@ const MesInformations = () => {
     );
   }
 
+  const fullName = getFullName(profile);
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation Header - Same as ListeCours */}
+      {/* Navigation Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
             <div 
               className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity" 
               onClick={() => navigate("/liste-cours")}
@@ -265,7 +268,6 @@ const MesInformations = () => {
               <span className="text-xl font-bold">AcadémiePlus</span>
             </div>
 
-            {/* Right Side: User Menu */}
             <div className="flex items-center gap-4">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -273,11 +275,11 @@ const MesInformations = () => {
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={profile?.avatar_url || undefined} />
                       <AvatarFallback>
-                        {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
+                        {fullName.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="text-left hidden md:block">
-                      <p className="text-sm font-medium">{profile?.full_name || 'Utilisateur'}</p>
+                      <p className="text-sm font-medium">{fullName}</p>
                       <p className="text-xs text-muted-foreground">
                         {profile?.school_level && getSchoolLevelName(profile.school_level)}
                       </p>
@@ -306,7 +308,6 @@ const MesInformations = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 mt-20">
-        {/* Breadcrumb */}
         <Breadcrumb className="mb-6">
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -318,7 +319,7 @@ const MesInformations = () => {
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-3xl">Mes Informations</CardTitle>
@@ -368,41 +369,6 @@ const MesInformations = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="date_of_birth">Date de naissance</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal bg-background",
-                          !dateOfBirth && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateOfBirth ? format(dateOfBirth, "dd/MM/yyyy") : "Sélectionnez votre date de naissance"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={dateOfBirth}
-                        onSelect={(date) => {
-                          setDateOfBirth(date);
-                          if (date) {
-                            setFormData({ ...formData, date_of_birth: format(date, "yyyy-MM-dd") });
-                          }
-                        }}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="school_level">Niveau scolaire</Label>
                   <select
                     id="school_level"
@@ -411,19 +377,14 @@ const MesInformations = () => {
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
                     <option value="">Sélectionnez un niveau</option>
-                    <option value="6ème">6ème</option>
-                    <option value="5ème">5ème</option>
-                    <option value="4ème">4ème</option>
-                    <option value="3ème">3ème</option>
-                    <option value="Seconde">Seconde</option>
-                    <option value="1ère">1ère</option>
-                    <option value="Terminale">Terminale</option>
+                    <option value="6eme">6ème</option>
+                    <option value="5eme">5ème</option>
+                    <option value="4eme">4ème</option>
+                    <option value="3eme">3ème</option>
+                    <option value="seconde">Seconde</option>
+                    <option value="premiere">Première</option>
+                    <option value="terminale">Terminale</option>
                   </select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="role">Rôle</Label>
-                  <Input id="role" value={getRoleName(profile?.role)} disabled className="bg-muted" />
                 </div>
               </div>
 
@@ -439,7 +400,7 @@ const MesInformations = () => {
                       <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
                       <AlertDialogDescription>
                         Cette action est irréversible. Cela supprimera définitivement votre compte et toutes vos
-                        données associées (cours, progrès, factures, etc.).
+                        données associées.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -457,6 +418,10 @@ const MesInformations = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Section Parent/Enfant selon le rôle */}
+          {userRole === 'parent' && <LinkedChildrenSection />}
+          {userRole === 'student' && <LinkedParentsSection />}
         </div>
       </main>
     </div>

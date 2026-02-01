@@ -22,7 +22,8 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Profile {
   id: string;
-  full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   email: string | null;
   school_level: string | null;
   avatar_url: string | null;
@@ -61,7 +62,7 @@ const Abonnements = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, email, school_level, avatar_url")
+        .select("id, first_name, last_name, email, school_level, avatar_url")
         .eq("id", userId)
         .single();
 
@@ -78,13 +79,19 @@ const Abonnements = () => {
     }
   };
 
+  const getFullName = (profile: Profile | null): string => {
+    if (!profile) return "Utilisateur";
+    const parts = [profile.first_name, profile.last_name].filter(Boolean);
+    return parts.length > 0 ? parts.join(" ") : "Utilisateur";
+  };
+
   const getSchoolLevelName = (level: string) => {
-    const levels = {
+    const levels: Record<string, string> = {
       cp: 'CP', ce1: 'CE1', ce2: 'CE2', cm1: 'CM1', cm2: 'CM2',
       sixieme: '6ème', cinquieme: '5ème', quatrieme: '4ème', troisieme: '3ème',
       seconde: 'Seconde', premiere: 'Première', terminale: 'Terminale'
     };
-    return levels[level as keyof typeof levels] || 'Votre classe';
+    return levels[level] || 'Votre classe';
   };
 
   const handleLogout = async () => {
@@ -104,6 +111,7 @@ const Abonnements = () => {
     );
   }
 
+  const fullName = getFullName(profile);
 
   return (
     <div className="min-h-screen bg-background">
@@ -130,11 +138,11 @@ const Abonnements = () => {
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={profile?.avatar_url || undefined} />
                       <AvatarFallback>
-                        {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
+                        {fullName.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="text-left hidden md:block">
-                      <p className="text-sm font-medium">{profile?.full_name || 'Utilisateur'}</p>
+                      <p className="text-sm font-medium">{fullName}</p>
                       <p className="text-xs text-muted-foreground">
                         {profile?.school_level && getSchoolLevelName(profile.school_level)}
                       </p>

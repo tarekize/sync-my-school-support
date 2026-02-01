@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import { useAdminUsers, useActivityLogs, AdminUser } from "@/hooks/useAdmin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,6 +60,20 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getSchoolLevelLabel } from "@/lib/validation";
 
+// Helper to get full name from profile
+const getFullName = (user: AdminUser): string => {
+  const parts = [user.first_name, user.last_name].filter(Boolean);
+  return parts.length > 0 ? parts.join(" ") : "Sans nom";
+};
+
+// Helper to get primary role from roles array
+const getPrimaryRole = (user: AdminUser): string => {
+  if (user.roles && user.roles.length > 0) {
+    return user.roles[0];
+  }
+  return "student";
+};
+
 export default function Admin() {
   const navigate = useNavigate();
   const { users, stats, loading, toggleUserStatus, deleteUser } = useAdminUsers();
@@ -72,10 +85,12 @@ export default function Admin() {
   const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
 
   const filteredUsers = users.filter((user) => {
+    const fullName = getFullName(user);
     const matchesSearch =
-      user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    const primaryRole = getPrimaryRole(user);
+    const matchesRole = roleFilter === "all" || primaryRole === roleFilter;
     return matchesSearch && matchesRole;
   });
 
@@ -216,7 +231,7 @@ export default function Admin() {
                           key={user.id}
                           user={user}
                           onToggleStatus={() =>
-                            toggleUserStatus(user.id, !user.account_active)
+                            toggleUserStatus(user.id, !user.is_active)
                           }
                           onDelete={() => {
                             setUserToDelete(user);
@@ -250,30 +265,35 @@ export default function Admin() {
                   </p>
                 ) : (
                   <div className="space-y-4">
-                    {logs.map((log) => (
-                      <div
-                        key={log.id}
-                        className="flex items-start gap-4 p-4 rounded-lg border"
-                      >
-                        <Activity className="h-5 w-5 text-muted-foreground mt-0.5" />
-                        <div className="flex-1">
-                          <p className="font-medium">{log.action}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Par {log.user?.full_name || log.user?.email || "Système"}
-                          </p>
-                          {log.details && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {JSON.stringify(log.details)}
+                    {logs.map((log) => {
+                      const userName = log.user
+                        ? [log.user.first_name, log.user.last_name].filter(Boolean).join(" ") || log.user.email
+                        : "Système";
+                      return (
+                        <div
+                          key={log.id}
+                          className="flex items-start gap-4 p-4 rounded-lg border"
+                        >
+                          <Activity className="h-5 w-5 text-muted-foreground mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-medium">{log.action}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Par {userName}
                             </p>
-                          )}
+                            {log.details && (
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {JSON.stringify(log.details)}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {log.created_at && format(new Date(log.created_at), "dd MMM HH:mm", {
+                              locale: fr,
+                            })}
+                          </span>
                         </div>
-                        <span className="text-sm text-muted-foreground">
-                          {format(new Date(log.created_at), "dd MMM HH:mm", {
-                            locale: fr,
-                          })}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -289,7 +309,7 @@ export default function Admin() {
             <AlertDialogTitle>Supprimer cet utilisateur ?</AlertDialogTitle>
             <AlertDialogDescription>
               Voulez-vous vraiment supprimer le compte de{" "}
-              <strong>{userToDelete?.full_name || userToDelete?.email}</strong> ?
+              <strong>{userToDelete ? getFullName(userToDelete) : ''}</strong> ?
               Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -343,25 +363,26 @@ function UserRow({
   onToggleStatus: () => void;
   onDelete: () => void;
 }) {
-  const initials = user.full_name
-    ?.split(" ")
+  const fullName = getFullName(user);
+  const initials = fullName
+    .split(" ")
     .map((n) => n[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
 
+  const primaryRole = getPrimaryRole(user);
+
   const roleLabels: Record<string, string> = {
     student: "Élève",
     parent: "Parent",
     admin: "Admin",
-    teacher: "Prof",
   };
 
   const roleColors: Record<string, string> = {
     student: "bg-blue-100 text-blue-700",
     parent: "bg-green-100 text-green-700",
     admin: "bg-purple-100 text-purple-700",
-    teacher: "bg-orange-100 text-orange-700",
   };
 
   return (
@@ -375,26 +396,26 @@ function UserRow({
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-medium">{user.full_name || "—"}</p>
+            <p className="font-medium">{fullName}</p>
             <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
         </div>
       </TableCell>
       <TableCell>
-        <Badge className={roleColors[user.role || "student"] || "bg-gray-100"}>
-          {roleLabels[user.role || ""] || user.role || "—"}
+        <Badge className={roleColors[primaryRole] || "bg-gray-100"}>
+          {roleLabels[primaryRole] || primaryRole}
         </Badge>
       </TableCell>
       <TableCell>
         {user.school_level ? getSchoolLevelLabel(user.school_level) : "—"}
       </TableCell>
       <TableCell>
-        <Badge variant={user.account_active ? "default" : "secondary"}>
-          {user.account_active ? "Actif" : "Inactif"}
+        <Badge variant={user.is_active ? "default" : "secondary"}>
+          {user.is_active ? "Actif" : "Inactif"}
         </Badge>
       </TableCell>
       <TableCell>
-        {format(new Date(user.created_at), "dd/MM/yyyy", { locale: fr })}
+        {user.created_at && format(new Date(user.created_at), "dd/MM/yyyy", { locale: fr })}
       </TableCell>
       <TableCell className="text-right">
         <DropdownMenu>
@@ -414,7 +435,7 @@ function UserRow({
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onToggleStatus}>
-              {user.account_active ? (
+              {user.is_active ? (
                 <>
                   <UserX className="h-4 w-4 mr-2" />
                   Désactiver

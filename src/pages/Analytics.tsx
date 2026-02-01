@@ -4,15 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Json } from "@/integrations/supabase/types";
 
 interface ActivityLog {
   id: string;
-  user_id: string;
+  user_id: string | null;
   action: string;
-  details: any;
-  entity_type: string | null;
-  entity_id: string | null;
-  created_at: string;
+  details: Json | null;
+  ip_address: string | null;
+  created_at: string | null;
 }
 
 interface Stats {
@@ -46,7 +46,7 @@ const Analytics = () => {
 
       // Calculate stats
       if (logsData) {
-        const uniqueUsers = new Set(logsData.map(log => log.user_id)).size;
+        const uniqueUsers = new Set(logsData.map(log => log.user_id).filter(Boolean)).size;
         const actionCounts = logsData.reduce((acc, log) => {
           acc[log.action] = (acc[log.action] || 0) + 1;
           return acc;
@@ -142,17 +142,15 @@ const Analytics = () => {
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Action</TableHead>
-                <TableHead>Type d'entité</TableHead>
                 <TableHead>ID utilisateur</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {logs.map((log) => (
                 <TableRow key={log.id}>
-                  <TableCell>{new Date(log.created_at).toLocaleString('fr-FR')}</TableCell>
+                  <TableCell>{log.created_at ? new Date(log.created_at).toLocaleString('fr-FR') : '-'}</TableCell>
                   <TableCell>{log.action}</TableCell>
-                  <TableCell>{log.entity_type || '-'}</TableCell>
-                  <TableCell className="font-mono text-xs">{log.user_id.slice(0, 8)}...</TableCell>
+                  <TableCell className="font-mono text-xs">{log.user_id ? log.user_id.slice(0, 8) + '...' : '-'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
