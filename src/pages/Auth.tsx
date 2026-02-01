@@ -160,6 +160,17 @@ const Auth = () => {
         if (error) throw error;
         toast.success("Connexion réussie !");
       } else {
+        // Mapping des valeurs d'affichage vers les valeurs de l'enum
+        const schoolLevelMapping: Record<string, string> = {
+          "6ème": "6eme",
+          "5ème": "5eme",
+          "4ème": "4eme",
+          "3ème": "3eme",
+          "Seconde": "seconde",
+          "1ère": "premiere",
+          "Terminale": "terminale",
+        };
+        
         // Préparer les données utilisateur
         const userData: any = {
           first_name: firstName,
@@ -173,9 +184,9 @@ const Auth = () => {
           userData.date_of_birth = format(dateOfBirth, 'yyyy-MM-dd');
         }
         
-        // N'inclure school_level que pour les élèves
+        // N'inclure school_level que pour les élèves avec la valeur convertie
         if (profileType === 'enfant' && classLevel) {
-          userData.school_level = classLevel;
+          userData.school_level = schoolLevelMapping[classLevel] || classLevel.toLowerCase();
         }
         
         const { error } = await supabase.auth.signUp({
