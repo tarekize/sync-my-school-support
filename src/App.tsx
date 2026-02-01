@@ -27,6 +27,7 @@ import Abonnements from "./pages/Abonnements";
 import Paiement from "./pages/Paiement";
 import Parrainage from "./pages/Parrainage";
 import MesDonneesPersonnelles from "./pages/MesDonneesPersonnelles";
+import ParentDashboard from "./pages/ParentDashboard";
 import DashboardEditorial from "./pages/editorial/DashboardEditorial";
 import EditeurCours from "./pages/editorial/EditeurCours";
 import PageRevision from "./pages/editorial/PageRevision";
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/editorial/historique/:id" element={<HistoriqueVersions />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/parent-dashboard" element={<ParentDashboard />} />
             <Route path="/account" element={<Account />} />
             <Route path="/factures" element={<Factures />} />
             <Route path="/mes-informations" element={<MesInformations />} />
