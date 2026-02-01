@@ -1,28 +1,37 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { FlashCard } from "@/components/revision/FlashCard";
+import { mathSecondeChapters } from "@/data/mathSecondeChapters";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, RotateCw } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, RotateCw, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+interface FlashCard {
+  id: string;
+  question: string;
+  answer: string;
+}
 
 const Revision = () => {
   const { subjectId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [cards, setCards] = useState<FlashCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
   const [reviewed, setReviewed] = useState<Set<number>>(new Set());
+  const [schoolLevel, setSchoolLevel] = useState<string>("");
 
   useEffect(() => {
     if (subjectId) {
-      fetchQuestions();
+      fetchData();
     }
   }, [subjectId]);
 
-  const fetchQuestions = async () => {
+  const fetchData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -36,23 +45,32 @@ const Revision = () => {
         .eq("id", user.id)
         .single();
 
-      // Utiliser la vue publique qui n'inclut pas les réponses
-      const { data, error } = await supabase
-        .from("quiz_questions_public")
-        .select("*")
-        .eq("subject_id", subjectId)
-        .eq("school_level", profile?.school_level);
+      setSchoolLevel(profile?.school_level || "");
 
-      if (error) throw error;
-
-      // Shuffle questions
-      const shuffled = (data || []).sort(() => Math.random() - 0.5);
-      setQuestions(shuffled);
+      // Use static data for math seconde
+      if (subjectId === "math" && profile?.school_level === "seconde") {
+        const allCards: FlashCard[] = [];
+        mathSecondeChapters.forEach(chapter => {
+          chapter.quizzes.forEach(quiz => {
+            allCards.push({
+              id: quiz.id,
+              question: quiz.question,
+              answer: `${quiz.correctAnswer}\n\n${quiz.explanation}`
+            });
+          });
+        });
+        
+        // Shuffle cards
+        const shuffled = allCards.sort(() => Math.random() - 0.5);
+        setCards(shuffled.slice(0, 20)); // Limit to 20 cards
+      } else {
+        setCards([]);
+      }
     } catch (error: any) {
       console.error("Error:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de charger les questions",
+        description: "Impossible de charger les cartes de révision",
         variant: "destructive",
       });
     } finally {
@@ -61,19 +79,35 @@ const Revision = () => {
   };
 
   const handleNext = () => {
-    if (currentIndex < questions.length - 1) {
+    if (currentIndex < cards.length - 1) {
       setCurrentIndex(currentIndex + 1);
+      setIsFlipped(false);
     }
   };
 
-  const handleDifficulty = (difficulty: string) => {
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+      setIsFlipped(false);
+    }
+  };
+
+  const handleMarkReviewed = (known: boolean) => {
     setReviewed(prev => new Set([...prev, currentIndex]));
+    if (known) {
+      toast({
+        title: "Bien joué ! ✓",
+        description: "Cette carte est marquée comme connue.",
+      });
+    }
+    handleNext();
   };
 
   const handleReset = () => {
     setCurrentIndex(0);
+    setIsFlipped(false);
     setReviewed(new Set());
-    fetchQuestions();
+    fetchData();
   };
 
   if (loading) {
@@ -84,10 +118,13 @@ const Revision = () => {
     );
   }
 
-  if (questions.length === 0) {
+  if (cards.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
-        <h2 className="text-2xl font-bold mb-4">Aucune question disponible</h2>
+        <h2 className="text-2xl font-bold mb-4">Aucune carte disponible</h2>
+        <p className="text-muted-foreground mb-6">
+          Les cartes de révision ne sont pas encore disponibles pour cette matière et ce niveau.
+        </p>
         <Button onClick={() => navigate("/liste-cours")}>
           Retour au catalogue
         </Button>
@@ -95,8 +132,8 @@ const Revision = () => {
     );
   }
 
-  const progress = (reviewed.size / questions.length) * 100;
-  const currentQuestion = questions[currentIndex];
+  const progress = (reviewed.size / cards.length) * 100;
+  const currentCard = cards[currentIndex];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
@@ -123,7 +160,7 @@ const Revision = () => {
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-muted-foreground">
-                Carte {currentIndex + 1} sur {questions.length}
+                Carte {currentIndex + 1} sur {cards.length}
               </span>
               <span className="text-sm font-medium">
                 {reviewed.size} révisées
@@ -132,26 +169,76 @@ const Revision = () => {
             <Progress value={progress} className="h-2" />
           </div>
 
-          {/* FlashCard désactivé temporairement car les réponses ne sont plus accessibles directement */}
-          <div className="text-center p-6 bg-card rounded-lg border-2">
-            <h3 className="text-xl font-bold mb-2">Mode révision temporairement indisponible</h3>
-            <p className="text-muted-foreground">
-              Cette fonctionnalité sera bientôt disponible avec un système sécurisé de flashcards.
-            </p>
-            <Button onClick={() => navigate("/liste-cours")} className="mt-4">
-              Retour au catalogue
+          {/* FlashCard */}
+          <Card 
+            className="min-h-[300px] cursor-pointer transition-all hover:shadow-lg"
+            onClick={() => setIsFlipped(!isFlipped)}
+          >
+            <CardHeader>
+              <CardTitle className="text-lg text-muted-foreground">
+                {isFlipped ? "Réponse" : "Question"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center min-h-[200px]">
+              <div className="text-center">
+                {isFlipped ? (
+                  <div className="whitespace-pre-line text-lg">
+                    {currentCard.answer}
+                  </div>
+                ) : (
+                  <p className="text-xl font-medium">{currentCard.question}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <p className="text-center text-sm text-muted-foreground">
+            Cliquez sur la carte pour la retourner
+          </p>
+
+          {/* Navigation */}
+          <div className="flex items-center justify-between gap-4">
+            <Button
+              variant="outline"
+              onClick={handlePrev}
+              disabled={currentIndex === 0}
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Précédente
+            </Button>
+
+            {isFlipped && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => handleMarkReviewed(false)}
+                  className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  À revoir
+                </Button>
+                <Button
+                  onClick={() => handleMarkReviewed(true)}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Je sais
+                </Button>
+              </div>
+            )}
+
+            <Button
+              variant="outline"
+              onClick={handleNext}
+              disabled={currentIndex === cards.length - 1}
+            >
+              Suivante
+              <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
 
-          {/* <FlashCard
-            question={currentQuestion.question}
-            answer={currentQuestion.correct_answer}
-            onNext={handleNext}
-            onDifficulty={handleDifficulty}
-          /> */}
-
-          {currentIndex === questions.length - 1 && reviewed.size === questions.length && (
-            <div className="text-center p-6 bg-card rounded-lg border-2">
+          {reviewed.size === cards.length && (
+            <Card className="p-6 text-center border-2 border-green-500/50 bg-green-500/5">
               <h3 className="text-2xl font-bold mb-2">Bravo ! 🎉</h3>
               <p className="text-muted-foreground mb-4">
                 Vous avez révisé toutes les cartes !
@@ -159,7 +246,7 @@ const Revision = () => {
               <Button onClick={handleReset}>
                 Recommencer la session
               </Button>
-            </div>
+            </Card>
           )}
         </div>
       </div>

@@ -23,11 +23,11 @@ import {
   Shield
 } from "lucide-react";
 import { getSchoolLevelLabel, getSchoolCategory } from "@/lib/validation";
-import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, hasRole } = useAuth();
   const { profile, loading, saving, updateProfile, uploadAvatar } = useProfile();
   
   const [firstName, setFirstName] = useState("");
@@ -36,6 +36,9 @@ export default function Profile() {
   const [phone, setPhone] = useState("");
   const [schoolLevel, setSchoolLevel] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
+  const [isStudent, setIsStudent] = useState(false);
+  const [isParent, setIsParent] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -46,6 +49,22 @@ export default function Profile() {
       setSchoolLevel(profile.school_level || "");
     }
   }, [profile]);
+
+  useEffect(() => {
+    const checkRoles = async () => {
+      const [studentResult, parentResult, adminResult] = await Promise.all([
+        hasRole("student"),
+        hasRole("parent"),
+        hasRole("admin")
+      ]);
+      setIsStudent(studentResult);
+      setIsParent(parentResult);
+      setIsAdmin(adminResult);
+    };
+    if (user) {
+      checkRoles();
+    }
+  }, [user, hasRole]);
 
   useEffect(() => {
     if (profile) {
@@ -62,11 +81,10 @@ export default function Profile() {
     const updates: Record<string, unknown> = {
       first_name: firstName,
       last_name: lastName,
-      full_name: `${firstName} ${lastName}`,
       phone: phone || null,
     };
 
-    if (profile?.role === "student") {
+    if (isStudent) {
       updates.school_level = schoolLevel || null;
     }
 
@@ -74,6 +92,11 @@ export default function Profile() {
     if (success) {
       setHasChanges(false);
     }
+  };
+
+  const getFullName = () => {
+    const parts = [firstName, lastName].filter(Boolean);
+    return parts.length > 0 ? parts.join(" ") : "Mon profil";
   };
 
   if (loading) {
@@ -88,10 +111,6 @@ export default function Profile() {
     navigate("/auth");
     return null;
   }
-
-  const isStudent = profile.role === "student";
-  const isParent = profile.role === "parent";
-  const isAdmin = profile.role === "admin";
 
   return (
     <div className="min-h-screen bg-background">
@@ -137,11 +156,11 @@ export default function Profile() {
         <div className="text-center mb-8">
           <ProfilePhotoUpload
             currentUrl={profile.avatar_url}
-            name={profile.full_name}
+            name={getFullName()}
             onUpload={uploadAvatar}
           />
           <h1 className="text-3xl font-bold mt-4">
-            {profile.full_name || "Mon profil"}
+            {getFullName()}
           </h1>
           <p className="text-muted-foreground">
             {isStudent && schoolLevel && (
