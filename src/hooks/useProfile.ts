@@ -23,7 +23,7 @@ export interface LinkedChild {
     email: string | null;
     school_level: string | null;
     avatar_url: string | null;
-  };
+  } | null;
 }
 
 export interface LinkedParent {
@@ -36,7 +36,7 @@ export interface LinkedParent {
     first_name: string | null;
     last_name: string | null;
     email: string | null;
-  };
+  } | null;
 }
 
 export function useProfile() {

@@ -66,7 +66,7 @@ interface LinkedChild {
     email: string | null;
     school_level: string | null;
     avatar_url: string | null;
-  };
+  } | null;
 }
 
 const ParentDashboard = () => {
@@ -151,7 +151,8 @@ const ParentDashboard = () => {
     return parts.length > 0 ? parts.join(" ") : "Utilisateur";
   };
 
-  const getChildFullName = (child: LinkedChild['child']): string => {
+  const getChildFullName = (child: LinkedChild["child"]): string => {
+    if (!child) return "Compte élève";
     const parts = [child.first_name, child.last_name].filter(Boolean);
     return parts.length > 0 ? parts.join(" ") : "Sans nom";
   };
@@ -378,8 +379,8 @@ const ParentDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {children.map((link) => {
-                      const childName = getChildFullName(link.child);
+                      {children.map((link) => {
+                        const childName = getChildFullName(link.child);
                       const initials = childName
                         .split(" ")
                         .map((n) => n[0])
@@ -391,8 +392,8 @@ const ParentDashboard = () => {
                         <TableRow key={link.id}>
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={link.child.avatar_url || undefined} />
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={link.child?.avatar_url || undefined} />
                                 <AvatarFallback className="bg-primary/10 text-primary">
                                   {initials || <UserIcon className="h-4 w-4" />}
                                 </AvatarFallback>
@@ -401,12 +402,12 @@ const ParentDashboard = () => {
                             </div>
                           </TableCell>
                           <TableCell className="text-muted-foreground">
-                            {link.child.email}
+                              {link.child?.email ?? "—"}
                           </TableCell>
                           <TableCell>
-                            {link.child.school_level ? (
+                              {link.child?.school_level ? (
                               <Badge variant="outline">
-                                {getSchoolLevelLabel(link.child.school_level)}
+                                  {getSchoolLevelLabel(link.child.school_level)}
                               </Badge>
                             ) : (
                               <span className="text-muted-foreground">—</span>
