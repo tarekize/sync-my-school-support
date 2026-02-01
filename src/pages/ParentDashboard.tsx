@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -72,7 +72,7 @@ interface LinkedChild {
 const ParentDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [children, setChildren] = useState<LinkedChild[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,33 +81,7 @@ const ParentDashboard = () => {
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-      setUser(session.user);
-      fetchProfile(session.user.id);
-      fetchChildren(session.user.id);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-      setUser(session.user);
-      fetchProfile(session.user.id);
-      fetchChildren(session.user.id);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -126,7 +100,7 @@ const ParentDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const fetchChildren = useCallback(async (userId: string) => {
     setChildrenLoading(true);
@@ -157,6 +131,19 @@ const ParentDashboard = () => {
       setChildrenLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    
+    fetchProfile(user.id);
+    fetchChildren(user.id);
+  }, [user, authLoading, navigate, fetchProfile, fetchChildren]);
+
 
   const getFullName = (profile: Profile | null): string => {
     if (!profile) return "Utilisateur";
@@ -242,7 +229,7 @@ const ParentDashboard = () => {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

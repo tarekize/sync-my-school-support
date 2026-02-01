@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -61,6 +62,7 @@ interface Profile {
 const MesInformations = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,28 +77,16 @@ const MesInformations = () => {
   });
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-      fetchProfile(session.user.id);
-      fetchUserRole(session.user.id);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-      fetchProfile(session.user.id);
-      fetchUserRole(session.user.id);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    if (authLoading) return;
+    
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    
+    fetchProfile(user.id);
+    fetchUserRole(user.id);
+  }, [user, authLoading, navigate]);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -244,7 +234,7 @@ const MesInformations = () => {
     navigate("/");
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
