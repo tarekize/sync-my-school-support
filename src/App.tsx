@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./i18n/config";
+import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Contact from "./pages/Contact";
 import MentionsLegales from "./pages/MentionsLegales";
@@ -48,40 +49,42 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/editorial" element={<DashboardEditorial />} />
-            <Route path="/editorial/cours/:id" element={<EditeurCours />} />
-            <Route path="/editorial/cours/:id/preview" element={<PreviewCours />} />
-            <Route path="/editorial/cours/:id/historique" element={<HistoriqueVersions />} />
-            <Route path="/editorial/cours/:id/compare" element={<CompareVersions />} />
-            <Route path="/editorial/revision" element={<PageRevision />} />
-            <Route path="/editorial/mediatheque" element={<Mediatheque />} />
-            <Route path="/editorial/equipe" element={<GestionEquipe />} />
-            <Route path="/editorial/historique/:id" element={<HistoriqueVersions />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/parent-dashboard" element={<ParentDashboard />} />
-            <Route path="/account" element={<Account />} />
-            <Route path="/factures" element={<Factures />} />
-            <Route path="/mes-informations" element={<MesInformations />} />
-            <Route path="/update-success" element={<UpdateSuccess />} />
-            <Route path="/abonnements" element={<Abonnements />} />
-            <Route path="/paiement" element={<Paiement />} />
-            <Route path="/parrainage" element={<Parrainage />} />
-            <Route path="/mes-donnees-personnelles" element={<MesDonneesPersonnelles />} />
-            <Route path="/liste-cours" element={<ListeCours />} />
-            <Route path="/cours/:subjectId" element={<Cours />} />
-            <Route path="/revision/:subjectId" element={<Revision />} />
-            <Route path="/simulation/:subjectId" element={<Simulation />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/faq-admin" element={<FAQAdmin />} />
-            <Route path="/mentions-legales" element={<MentionsLegales />} />
-            <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/editorial" element={<DashboardEditorial />} />
+              <Route path="/editorial/cours/:id" element={<EditeurCours />} />
+              <Route path="/editorial/cours/:id/preview" element={<PreviewCours />} />
+              <Route path="/editorial/cours/:id/historique" element={<HistoriqueVersions />} />
+              <Route path="/editorial/cours/:id/compare" element={<CompareVersions />} />
+              <Route path="/editorial/revision" element={<PageRevision />} />
+              <Route path="/editorial/mediatheque" element={<Mediatheque />} />
+              <Route path="/editorial/equipe" element={<GestionEquipe />} />
+              <Route path="/editorial/historique/:id" element={<HistoriqueVersions />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/parent-dashboard" element={<ParentDashboard />} />
+              <Route path="/account" element={<Account />} />
+              <Route path="/factures" element={<Factures />} />
+              <Route path="/mes-informations" element={<MesInformations />} />
+              <Route path="/update-success" element={<UpdateSuccess />} />
+              <Route path="/abonnements" element={<Abonnements />} />
+              <Route path="/paiement" element={<Paiement />} />
+              <Route path="/parrainage" element={<Parrainage />} />
+              <Route path="/mes-donnees-personnelles" element={<MesDonneesPersonnelles />} />
+              <Route path="/liste-cours" element={<ListeCours />} />
+              <Route path="/cours/:subjectId" element={<Cours />} />
+              <Route path="/revision/:subjectId" element={<Revision />} />
+              <Route path="/simulation/:subjectId" element={<Simulation />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/faq-admin" element={<FAQAdmin />} />
+              <Route path="/mentions-legales" element={<MentionsLegales />} />
+              <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </I18nextProvider>
