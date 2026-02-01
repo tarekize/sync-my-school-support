@@ -1,0 +1,216 @@
+{
+  "header": {
+    "logo": "AcadémiePlus",
+    "discoverPlans": "Découvrir les formules",
+    "phone": "023 21 00 00",
+    "login": "Se connecter",
+    "logout": "Déconnexion",
+    "freeTrial": "Inscrivez-vous"
+  },
+  "hero": {
+    "badge": "Plateforme d'apprentissage en ligne",
+    "title": "La plateforme qui booste vos résultats scolaires de la 6ème à la terminale",
+    "cta": "Commencer",
+    "programs": "Programmes officiels de l'éducation nationale algérienne"
+  },
+  "whyChooseUs": {
+    "title": "Pourquoi nous choisir ?",
+    "subtitle": "Une approche unique qui transforme les difficultés en réussites",
+    "personalizedSupport": {
+      "title": "Suivi personnalisé",
+      "description": "Grâce à un tableau de bord détaillé, les élèves et les parents peuvent suivre l'évolution des apprentissages, accéder à des outils d'aide aux devoirs et bénéficier d'un suivi pédagogique personnalisé."
+    },
+    "aiPedagogy": {
+      "title": "L'intelligence artificielle au cœur de la pédagogie",
+      "description": "Notre plateforme intègre les avancées de l'IA pour proposer des contenus adaptés et sur-mesure, améliorer la compréhension et accompagner chaque élève dans sa progression."
+    },
+    "rapidProgress": {
+      "title": "Progression rapide",
+      "description": "Des cours et exercices conçus pour renforcer les connaissances, combler les lacunes et faire évoluer les résultats en un temps record."
+    },
+    "certifiedTeachers": {
+      "title": "Professeurs certifiés",
+      "description": "Enseignants qualifiés et expérimentés, passionnés par la transmission du savoir."
+    }
+  },
+  "subjects": {
+    "title": "Toutes les matières de la 6ème à la Terminale",
+    "features": {
+      "downloadablePdf": "Cours téléchargeables en PDF",
+      "examPrep": "Préparation au Brevet et au Bac",
+      "exercises": "Cours, exercices & quiz corrigés, fiches, flashcards ..."
+    },
+    "math": "Mathématiques",
+    "physics": "Physique",
+    "french": "Français",
+    "arabic": "Arabe",
+    "history": "Histoire",
+    "chemistry": "Chimie",
+    "english": "Anglais",
+    "naturalSciences": "Sciences Naturelles",
+    "geography": "Géographie",
+    "philosophy": "Philosophie",
+    "islamicEducation": "Éducation Islamique",
+    "computerScience": "Informatique"
+  },
+  "results": {
+    "title": "Des résultats qui parlent",
+    "subtitle": "La preuve de notre efficacité à travers les chiffres",
+    "successRate": {
+      "value": "98%",
+      "label": "Taux de réussite aux examens",
+      "description": "Nos élèves excellent dans leurs évaluations"
+    },
+    "averageGain": {
+      "value": "+2.5",
+      "label": "Points de moyenne gagnés",
+      "description": "Progression moyenne en 3 mois"
+    },
+    "studentsHelped": {
+      "value": "15 000+",
+      "label": "Élèves accompagnés",
+      "description": "Depuis notre création"
+    },
+    "satisfaction": {
+      "value": "4.9/5",
+      "label": "Satisfaction des parents",
+      "description": "Note moyenne sur l'ensemble de nos services"
+    },
+    "confidence": {
+      "title": "Confiance retrouvée",
+      "description": "Nos élèves regagnent confiance en leurs capacités et développent l'autonomie nécessaire pour réussir leur parcours scolaire."
+    },
+    "flexibility": {
+      "title": "Flexibilité totale",
+      "description": "Cours en présentiel ou en ligne, horaires adaptés : nous nous ajustons à votre emploi du temps pour un accompagnement optimal."
+    }
+  },
+  "excellence": {
+    "title": "Une Pédagogie d'Excellence, Validée par l'Expérience",
+    "subtitle": "La garantie d'un contenu fiable et efficace",
+    "intro1": "Chez <strong>AcadémiePlus</strong>, la qualité de l'enseignement est notre priorité absolue. C'est pourquoi tous nos cours, fiches de révision et exercices sont élaborés par une équipe d'enseignants certifiés et passionnés, dotés d'une expérience pédagogique de plus de 20 ans dans l'Éducation Nationale.",
+    "intro2": "Leur expertise garantit un contenu non seulement conforme aux programmes officiels, mais aussi adapté aux besoins réels des élèves, avec des méthodes qui ont fait leurs preuves sur le terrain. Nous mettons leur savoir-faire au service de la réussite de votre enfant.",
+    "certifiedExpertise": {
+      "title": "Expertise Certifiée",
+      "description": "Une équipe d'enseignants diplômés de l'Éducation Nationale"
+    },
+    "experience": {
+      "title": "Plus de 20 ans d'expérience",
+      "description": "Des pédagogues chevronnés qui connaissent les défis de chaque niveau"
+    },
+    "validatedContent": {
+      "title": "Contenu Validé",
+      "description": "Des supports pédagogiques rigoureusement élaborés et testés"
+    },
+    "cta": "Consulter nos programmes par matière"
+  },
+  "pricing": {
+    "title": "Choisissez la formule qui vous convient",
+    "subtitle": "Choisissez la formule qui correspond le mieux à vos besoins et à votre budget",
+    "switchOneChild": "1 Enfant",
+    "switchFamily": "Famille (2 à 3 enfants)",
+    "discovery": {
+      "name": "Formule découverte",
+      "price": "Gratuit",
+      "period": "",
+      "description": "",
+      "features": {
+        "subjects": "Accès à 3 matières",
+        "exercises": "100+ exercices interactifs",
+        "tracking": "Suivi de progression",
+        "support": "Support par email"
+      }
+    },
+    "regular": {
+      "name": "Formule Année scolaire",
+      "price": "4 990 DA",
+      "period": "/mois",
+      "description": "Le plus populaire",
+      "immediatePayment": "Paiement immédiat de",
+      "paymentPeriod": "pour une période de 10 mois allant jusqu'au 31 juillet",
+      "features": {
+        "allSubjects": "Accès à toutes les matières",
+        "exercises": "500+ exercices interactifs",
+        "videos": "Vidéos de cours",
+        "tracking": "Suivi personnalisé",
+        "priority": "Support prioritaire",
+        "exams": "Examens blancs"
+      }
+    },
+    "intensive": {
+      "name": "Formule Mensuelle",
+      "price": "7 990 DA",
+      "period": "/mois",
+      "description": "",
+      "features": {
+        "everything": "Tout du plan Régulier",
+        "liveCourses": "Cours en direct chaque semaine",
+        "correction": "Correction personnalisée",
+        "revision": "Révisions avant examens",
+        "unlimited": "Accès illimité 24/7",
+        "guarantee": "Garantie résultats"
+      }
+    },
+    "popular": "POPULAIRE",
+    "choose": "Choisir"
+  },
+  "faq": {
+    "title": "Questions Fréquentes",
+    "subtitle": "Tout ce que vous devez savoir sur nos cours en ligne",
+    "questions": {
+      "howItWorks": {
+        "question": "Comment fonctionne la plateforme de cours en ligne ?",
+        "answer": "Notre plateforme vous donne accès 24h/24 et 7j/7 à des cours vidéo de qualité, des exercices interactifs avec correction automatique, et un suivi personnalisé de votre progression. Vous pouvez apprendre à votre rythme depuis n'importe quel appareil."
+      },
+      "subjects": {
+        "question": "Quelles matières sont disponibles ?",
+        "answer": "Nous couvrons toutes les matières principales : Mathématiques, Physique, Sciences Naturelles, Français, Arabe, Anglais, Histoire-Géographie, et plus encore. Les contenus suivent strictement les programmes officiels de l'éducation nationale algérienne."
+      },
+      "freeTrial": {
+        "question": "Puis-je essayer gratuitement avant de m'abonner ?",
+        "answer": "Oui ! Nous offrons un essai gratuit de 7 jours pour que vous puissiez explorer la plateforme, accéder aux cours et exercices, et voir si notre méthode vous convient avant de vous engager."
+      },
+      "tracking": {
+        "question": "Comment puis-je suivre ma progression ?",
+        "answer": "Chaque élève dispose d'un tableau de bord personnel qui affiche sa progression dans chaque matière, ses scores aux exercices, le temps passé sur la plateforme, et des recommandations personnalisées pour améliorer ses points faibles."
+      },
+      "support": {
+        "question": "Y a-t-il un support en cas de questions ?",
+        "answer": "Absolument ! Notre équipe pédagogique est disponible par email et chat pour répondre à toutes vos questions. Les abonnés Premium et Intensif bénéficient également d'un support prioritaire et de sessions de tutorat en direct."
+      },
+      "algerian": {
+        "question": "Les cours sont-ils conformes au programme algérien ?",
+        "answer": "Oui, tous nos contenus sont créés en stricte conformité avec les programmes officiels du ministère de l'Éducation nationale algérien. Nos cours sont élaborés par des enseignants certifiés et expérimentés."
+      },
+      "changePlan": {
+        "question": "Puis-je changer de formule à tout moment ?",
+        "answer": "Oui, vous pouvez passer à une formule supérieure ou inférieure à tout moment. Le changement prendra effet immédiatement et sera pris en compte sur votre prochaine facturation."
+      }
+    }
+  },
+  "cta": {
+    "title": "Prêt à commencer ton parcours vers la réussite ?",
+    "subtitle": "Rejoins des milliers d'élèves qui progressent chaque jour avec nos cours en ligne",
+    "button": "Commencer l'essai gratuit",
+    "noCommitment": "Sans engagement • 7 jours gratuits • Annulation à tout moment"
+  },
+  "footer": {
+    "description": "La plateforme de cours en ligne qui accompagne les élèves algériens vers la réussite scolaire.",
+    "navigation": "Navigation",
+    "home": "Accueil",
+    "plans": "Formules",
+    "faq": "FAQ",
+    "legal": "Mentions légales",
+    "subjects": "Matières",
+    "math": "Mathématiques",
+    "physics": "Physique",
+    "science": "Sciences Naturelles",
+    "french": "Français",
+    "arabic": "Arabe",
+    "english": "Anglais",
+    "contact": "Contact",
+    "location": "Alger, Algérie",
+    "rights": "Tous droits réservés.",
+    "conformity": "Conforme aux programmes officiels de l'éducation nationale algérienne 🇩🇿"
+  }
+}
