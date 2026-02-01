@@ -188,12 +188,12 @@ const ParentDashboard = () => {
 
     setSubmitting(true);
     try {
-      // Find child by linking code
+      // Find child by linking code (case-insensitive comparison)
       const { data: childProfile, error: findError } = await supabase
         .from("profiles")
         .select("id")
-        .eq("linking_code", code.toUpperCase())
-        .single();
+        .ilike("linking_code", code.trim())
+        .maybeSingle();
 
       if (findError || !childProfile) {
         sonnerToast.error("Code de liaison invalide");
