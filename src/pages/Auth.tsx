@@ -68,22 +68,46 @@ const Auth = () => {
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         
         if (session) {
+          // Check user role to redirect appropriately
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .limit(1)
+            .maybeSingle();
+          
           setTimeout(() => {
-            navigate("/liste-cours");
+            if (roleData?.role === 'parent') {
+              navigate("/parent-dashboard");
+            } else {
+              navigate("/liste-cours");
+            }
           }, 0);
         }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       if (session) {
-        navigate("/liste-cours");
+        // Check user role
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .limit(1)
+          .maybeSingle();
+        
+        if (roleData?.role === 'parent') {
+          navigate("/parent-dashboard");
+        } else {
+          navigate("/liste-cours");
+        }
       }
     });
 

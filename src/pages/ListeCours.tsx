@@ -45,15 +45,9 @@ interface Subject {
   available: boolean;
 }
 
-// Static subjects since the database tables don't exist
+// Only Mathematics is available for students currently
 const staticSubjects: Subject[] = [
   { id: "math", name: "Mathématiques", icon: Calculator, color: "#3B82F6", available: true },
-  { id: "physics", name: "Physique-Chimie", icon: Beaker, color: "#8B5CF6", available: false },
-  { id: "french", name: "Français", icon: BookOpen, color: "#EF4444", available: false },
-  { id: "history", name: "Histoire-Géographie", icon: Globe, color: "#F59E0B", available: false },
-  { id: "english", name: "Anglais", icon: Languages, color: "#10B981", available: false },
-  { id: "biology", name: "SVT", icon: Microscope, color: "#06B6D4", available: false },
-  { id: "philosophy", name: "Philosophie", icon: Landmark, color: "#EC4899", available: false },
 ];
 
 const ListeCours = () => {
