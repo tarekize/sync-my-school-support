@@ -27,14 +27,6 @@ export function SchoolLevelSelect({
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>
-          <SelectLabel className="text-primary font-semibold">Primaire</SelectLabel>
-          {schoolLevels.primaire.map((level) => (
-            <SelectItem key={level.value} value={level.value}>
-              {level.label}
-            </SelectItem>
-          ))}
-        </SelectGroup>
-        <SelectGroup>
           <SelectLabel className="text-primary font-semibold">Collège</SelectLabel>
           {schoolLevels.college.map((level) => (
             <SelectItem key={level.value} value={level.value}>
