@@ -14,16 +14,181 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          ip_address: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parent_child_links: {
+        Row: {
+          child_id: string
+          created_at: string | null
+          id: string
+          parent_id: string
+          status: Database["public"]["Enums"]["link_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          child_id: string
+          created_at?: string | null
+          id?: string
+          parent_id: string
+          status?: Database["public"]["Enums"]["link_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          child_id?: string
+          created_at?: string | null
+          id?: string
+          parent_id?: string
+          status?: Database["public"]["Enums"]["link_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_child_links_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_child_links_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          email_verified: boolean | null
+          first_name: string | null
+          id: string
+          is_active: boolean | null
+          last_name: string | null
+          linking_code: string | null
+          phone: string | null
+          school_level: Database["public"]["Enums"]["school_level"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          email_verified?: boolean | null
+          first_name?: string | null
+          id: string
+          is_active?: boolean | null
+          last_name?: string | null
+          linking_code?: string | null
+          phone?: string | null
+          school_level?: Database["public"]["Enums"]["school_level"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          email_verified?: boolean | null
+          first_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_name?: string | null
+          linking_code?: string | null
+          phone?: string | null
+          school_level?: Database["public"]["Enums"]["school_level"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_parent_of: {
+        Args: { _child_id: string; _parent_id: string }
+        Returns: boolean
+      }
+      log_activity: {
+        Args: { _action: string; _details?: Json; _user_id: string }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "student" | "parent" | "admin"
+      link_status: "pending" | "active" | "rejected"
+      school_level:
+        | "6eme"
+        | "5eme"
+        | "4eme"
+        | "3eme"
+        | "seconde"
+        | "premiere"
+        | "terminale"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +315,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["student", "parent", "admin"],
+      link_status: ["pending", "active", "rejected"],
+      school_level: [
+        "6eme",
+        "5eme",
+        "4eme",
+        "3eme",
+        "seconde",
+        "premiere",
+        "terminale",
+      ],
+    },
   },
 } as const
