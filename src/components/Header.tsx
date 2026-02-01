@@ -91,7 +91,7 @@ const Header = ({ minimal = false }: { minimal?: boolean }) => {
                 </Button>
               ) : (
                 <Button
-                  onClick={() => navigate("/auth")}
+                  onClick={() => navigate("/auth?mode=login")}
                   variant="ghost"
                   className="text-gray-900 font-medium hover:text-blue-600"
                 >
@@ -101,7 +101,7 @@ const Header = ({ minimal = false }: { minimal?: boolean }) => {
 
               {!session && (
                 <Button 
-                  onClick={() => navigate("/auth")}
+                  onClick={() => navigate("/auth?mode=signup")}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6"
                 >
                   {t("header.freeTrial")}
@@ -167,7 +167,7 @@ const Header = ({ minimal = false }: { minimal?: boolean }) => {
               </Button>
             ) : (
               <Button
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/auth?mode=login")}
                 className="w-full text-xl text-gray-900 font-bold bg-transparent hover:bg-gray-100"
               >
                 {t("header.login")}
@@ -176,7 +176,7 @@ const Header = ({ minimal = false }: { minimal?: boolean }) => {
 
             {!session && (
               <Button 
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/auth?mode=signup")}
                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold"
               >
                 {t("header.freeTrial")}

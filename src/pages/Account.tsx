@@ -8,6 +8,7 @@ import { UserCircle, CreditCard, FileText, Gift, Users, BarChart3, ArrowLeft, Gr
 import { useToast } from "@/hooks/use-toast";
 import { PrepaidCodeDialog } from "@/components/PrepaidCodeDialog";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +39,8 @@ const Account = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [prepaidDialogOpen, setPrepaidDialogOpen] = useState(false);
+  const { hasRole } = useAuth();
+  const [isParent, setIsParent] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -47,6 +50,7 @@ const Account = () => {
       }
       setUser(session.user);
       fetchProfile(session.user.id);
+      hasRole('parent').then(setIsParent);
     });
 
     const {
@@ -58,10 +62,11 @@ const Account = () => {
       }
       setUser(session.user);
       fetchProfile(session.user.id);
+      hasRole('parent').then(setIsParent);
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, hasRole]);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -173,7 +178,7 @@ const Account = () => {
             {/* Logo */}
             <div 
               className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity" 
-              onClick={() => navigate("/liste-cours")}
+              onClick={() => navigate(isParent ? "/dashboard" : "/liste-cours")}
             >
               <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
                 <GraduationCap className="h-6 w-6 text-white" />
@@ -205,7 +210,7 @@ const Account = () => {
                     <UserIcon className="mr-2 h-4 w-4" />
                     <span>Gérer mon compte</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                  <DropdownMenuItem onClick={() => navigate(isParent ? "/parent-dashboard" : "/dashboard")}>
                     <GraduationCap className="mr-2 h-4 w-4" />
                     <span>Tableau de bord</span>
                   </DropdownMenuItem>
@@ -223,16 +228,18 @@ const Account = () => {
 
       <main className="container mx-auto px-4 py-8 mt-20">
         {/* Breadcrumb */}
-        <Breadcrumb className="mb-6">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink onClick={() => navigate("/liste-cours")} className="cursor-pointer flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Retour vers liste des matières
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+        {!isParent && (
+          <Breadcrumb className="mb-6">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink onClick={() => navigate("/liste-cours")} className="cursor-pointer flex items-center gap-2">
+                  <ArrowLeft className="h-4 w-4" />
+                  Retour vers liste des matières
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        )}
 
         <div className="max-w-6xl mx-auto">
           {/* Profile Photo and Title */}

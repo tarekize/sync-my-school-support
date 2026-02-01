@@ -62,7 +62,7 @@ interface Profile {
 const MesInformations = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, hasRole } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,8 +85,16 @@ const MesInformations = () => {
     }
     
     fetchProfile(user.id);
-    fetchUserRole(user.id);
-  }, [user, authLoading, navigate]);
+
+    const determineUserRole = async () => {
+      if (await hasRole('parent')) {
+        setUserRole('parent');
+      } else if (await hasRole('student')) {
+        setUserRole('student');
+      }
+    };
+    determineUserRole();
+  }, [user, authLoading, navigate, hasRole]);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -112,23 +120,6 @@ const MesInformations = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchUserRole = async (userId: string) => {
-    try {
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .limit(1)
-        .maybeSingle();
-
-      if (data) {
-        setUserRole(data.role);
-      }
-    } catch (error) {
-      console.error("Error fetching user role:", error);
     }
   };
 
@@ -283,7 +274,7 @@ const MesInformations = () => {
                     <UserIcon className="mr-2 h-4 w-4" />
                     <span>Gérer mon compte</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                  <DropdownMenuItem onClick={() => navigate(userRole === 'parent' ? "/parent-dashboard" : "/dashboard")}>
                     <GraduationCap className="mr-2 h-4 w-4" />
                     <span>Tableau de bord</span>
                   </DropdownMenuItem>
@@ -360,24 +351,26 @@ const MesInformations = () => {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="school_level">Niveau scolaire</Label>
-                  <select
-                    id="school_level"
-                    value={formData.school_level}
-                    onChange={(e) => setFormData({ ...formData, school_level: e.target.value })}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <option value="">Sélectionnez un niveau</option>
-                    <option value="6eme">6ème</option>
-                    <option value="5eme">5ème</option>
-                    <option value="4eme">4ème</option>
-                    <option value="3eme">3ème</option>
-                    <option value="seconde">Seconde</option>
-                    <option value="premiere">Première</option>
-                    <option value="terminale">Terminale</option>
-                  </select>
-                </div>
+                {userRole !== 'parent' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="school_level">Niveau scolaire</Label>
+                    <select
+                      id="school_level"
+                      value={formData.school_level}
+                      onChange={(e) => setFormData({ ...formData, school_level: e.target.value })}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="">Sélectionnez un niveau</option>
+                      <option value="6eme">6ème</option>
+                      <option value="5eme">5ème</option>
+                      <option value="4eme">4ème</option>
+                      <option value="3eme">3ème</option>
+                      <option value="seconde">Seconde</option>
+                      <option value="premiere">Première</option>
+                      <option value="terminale">Terminale</option>
+                    </select>
+                  </div>
+                )}
 
                 {/* Code de liaison pour les élèves */}
                 {userRole === 'student' && profile?.linking_code && (
