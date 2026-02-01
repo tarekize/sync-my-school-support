@@ -22,22 +22,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Users, Copy, Check, Trash2, User, Loader2, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import { Users, Copy, Check, Trash2, User, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { useLinkedParents, LinkedParent } from "@/hooks/useProfile";
 import { toast } from "sonner";
 
+// Helper to get full name from parent profile
+const getParentFullName = (parent: LinkedParent['parent']): string => {
+  const parts = [parent.first_name, parent.last_name].filter(Boolean);
+  return parts.length > 0 ? parts.join(" ") : "Sans nom";
+};
+
 export function LinkedParentsSection() {
-  const { parents, linkingCode, loading, generateLinkingCode, respondToRequest, removeParent } =
+  const { parents, linkingCode, loading, respondToRequest, removeParent } =
     useLinkedParents();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [generating, setGenerating] = useState(false);
-
-  const handleGenerateCode = async () => {
-    setGenerating(true);
-    await generateLinkingCode();
-    setGenerating(false);
-  };
 
   const handleCopyCode = () => {
     if (linkingCode) {
@@ -122,7 +121,7 @@ export function LinkedParentsSection() {
               <DialogTrigger asChild>
                 <Button variant="outline">
                   <Copy className="h-4 w-4 mr-2" />
-                  Générer un code
+                  Mon code de liaison
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -153,35 +152,13 @@ export function LinkedParentsSection() {
                         </Button>
                       </div>
                       <p className="text-sm text-center text-muted-foreground">
-                        Ce code expire dans 24 heures
+                        Ce code est unique à votre compte
                       </p>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={handleGenerateCode}
-                        disabled={generating}
-                      >
-                        {generating ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                        )}
-                        Générer un nouveau code
-                      </Button>
                     </>
                   ) : (
-                    <Button
-                      className="w-full"
-                      onClick={handleGenerateCode}
-                      disabled={generating}
-                    >
-                      {generating ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Copy className="h-4 w-4 mr-2" />
-                      )}
-                      Générer un code
-                    </Button>
+                    <p className="text-center text-muted-foreground">
+                      Aucun code de liaison disponible
+                    </p>
                   )}
                 </div>
               </DialogContent>
@@ -195,7 +172,7 @@ export function LinkedParentsSection() {
               <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p>Aucun parent lié pour le moment</p>
               <p className="text-sm">
-                Générez un code pour que vos parents puissent se lier à votre compte
+                Partagez votre code de liaison avec vos parents
               </p>
             </div>
           ) : (
@@ -225,8 +202,9 @@ function PendingRequestCard({
   onReject: () => void;
 }) {
   const parent = link.parent;
-  const initials = parent.full_name
-    ?.split(" ")
+  const fullName = getParentFullName(parent);
+  const initials = fullName
+    .split(" ")
     .map((n) => n[0])
     .join("")
     .toUpperCase()
@@ -242,9 +220,7 @@ function PendingRequestCard({
         </Avatar>
 
         <div>
-          <h4 className="font-medium">
-            {parent.full_name || `${parent.first_name} ${parent.last_name}`}
-          </h4>
+          <h4 className="font-medium">{fullName}</h4>
           <p className="text-sm text-muted-foreground">{parent.email}</p>
         </div>
       </div>
@@ -271,8 +247,9 @@ function ParentCard({
   onRemove: () => void;
 }) {
   const parent = link.parent;
-  const initials = parent.full_name
-    ?.split(" ")
+  const fullName = getParentFullName(parent);
+  const initials = fullName
+    .split(" ")
     .map((n) => n[0])
     .join("")
     .toUpperCase()
@@ -289,9 +266,7 @@ function ParentCard({
 
         <div>
           <div className="flex items-center gap-2">
-            <h4 className="font-medium">
-              {parent.full_name || `${parent.first_name} ${parent.last_name}`}
-            </h4>
+            <h4 className="font-medium">{fullName}</h4>
             <Badge variant="default">Parent</Badge>
           </div>
           <p className="text-sm text-muted-foreground">{parent.email}</p>
@@ -308,7 +283,7 @@ function ParentCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer le lien ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Voulez-vous vraiment supprimer le lien avec {parent.full_name} ?
+              Voulez-vous vraiment supprimer le lien avec {fullName} ?
               Ce parent ne pourra plus suivre votre progression.
             </AlertDialogDescription>
           </AlertDialogHeader>

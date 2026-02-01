@@ -1,16 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { CourseContent } from "@/components/course/CourseContent";
-import { PDFContent } from "@/components/course/PDFContent";
-import { ChapterGrid } from "@/components/course/ChapterGrid";
-import { ActivityCards } from "@/components/course/ActivityCards";
 import { ChapterMathQuiz } from "@/components/course/ChapterMathQuiz";
 import { ChapterMathExercises } from "@/components/course/ChapterMathExercises";
 import { getChapterContent, mathSecondeChapters } from "@/data/mathSecondeChapters";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, GraduationCap, LogOut, User as UserIcon, MessageCircle, X } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, GraduationCap, LogOut, User as UserIcon, MessageCircle, X, BookOpen, Play, PenTool, Brain, Download, Check } from "lucide-react";
 import ChatBot from "@/components/ChatBot";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -30,36 +27,49 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// Static subject data
+const staticSubjects: Record<string, { id: string; name: string; icon: string }> = {
+  "math": { id: "math", name: "Mathématiques", icon: "📐" },
+};
+
+interface Profile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  school_level: string | null;
+  email: string | null;
+}
+
+interface Chapter {
+  id: string;
+  title: string;
+  order_index: number;
+  content: string;
+}
+
 const Cours = () => {
   const { subjectId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const contentRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
-  const [course, setCourse] = useState<any>(null);
-  const [subject, setSubject] = useState<any>(null);
   const [schoolLevel, setSchoolLevel] = useState<string>("");
-  const [chapters, setChapters] = useState<any[]>([]);
-  const [activeChapter, setActiveChapter] = useState<any>(null);
-  const [materials, setMaterials] = useState<any[]>([]);
-  const [progress, setProgress] = useState<any[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [activeChapter, setActiveChapter] = useState<Chapter | null>(null);
+  const [progress, setProgress] = useState<Record<string, boolean>>({});
   const [viewMode, setViewMode] = useState<"grid" | "content">("grid");
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string; }[]>([]);
   const [activeActivity, setActiveActivity] = useState<string | null>(null);
+
+  const subject = subjectId ? staticSubjects[subjectId] || { id: subjectId, name: subjectId, icon: "📖" } : null;
 
   useEffect(() => {
     if (subjectId) {
       fetchCourse();
     }
   }, [subjectId]);
-
-  useEffect(() => {
-    if (activeChapter) {
-      fetchMaterials(activeChapter.id);
-    }
-  }, [activeChapter]);
 
   const fetchCourse = async () => {
     try {
@@ -71,87 +81,34 @@ const Cours = () => {
         return;
       }
 
-      const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, avatar_url, school_level, email")
+        .eq("id", user.id)
+        .single();
 
       setProfile(profileData);
       setSchoolLevel(profileData?.school_level || "");
 
-      // Fetch subject details
-      const { data: subjectData } = await supabase.from("subjects").select("*").eq("id", subjectId).single();
-
-      setSubject(subjectData);
-
-      console.log('User school_level:', profileData?.school_level, 'Subject:', subjectId);
-
-      const { data: courseData, error: courseError } = await supabase
-        .from("courses")
-        .select("*")
-        .eq("subject_id", subjectId)
-        .eq("school_level", profileData?.school_level)
-        .order("order_index")
-        .limit(1)
-        .maybeSingle();
-
-      console.log('Found course:', courseData);
-
-      if (courseError) throw courseError;
-
-      if (!courseData) {
-        // Si aucun cours pour ce niveau, afficher tous les cours de la matière
-        const { data: allCoursesData } = await supabase
-          .from("courses")
-          .select("*")
-          .eq("subject_id", subjectId)
-          .order("order_index")
-          .limit(1)
-          .maybeSingle();
-
-        if (!allCoursesData) {
-          toast({
-            title: "Cours non disponible",
-            description: "Aucun cours trouvé pour cette matière",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-
-        // Utiliser le premier cours disponible
-        setCourse(allCoursesData);
-        
-        const { data: chaptersData } = await supabase
-          .from("course_chapters")
-          .select("*")
-          .eq("course_id", allCoursesData.id)
-          .order("order_index");
-
-        console.log('Fallback - Found chapters:', chaptersData?.length, 'chapters');
-        setChapters(chaptersData || []);
-
-        if (chaptersData && chaptersData.length > 0) {
-          setActiveChapter(chaptersData[0]);
+      // Use local static chapters for math seconde
+      if (subjectId === "math" && profileData?.school_level === "seconde") {
+        const staticChapters: Chapter[] = mathSecondeChapters.map((ch, index) => {
+          const chapterContent = getChapterContent(ch.id);
+          return {
+            id: ch.id,
+            title: ch.title,
+            order_index: index,
+            content: chapterContent?.content || "",
+          };
+        });
+        setChapters(staticChapters);
+        if (staticChapters.length > 0) {
+          setActiveChapter(staticChapters[0]);
         }
       } else {
-        setCourse(courseData);
-
-        const { data: chaptersData, error: chaptersError } = await supabase
-          .from("course_chapters")
-          .select("*")
-          .eq("course_id", courseData.id)
-          .order("order_index");
-
-        if (chaptersError) throw chaptersError;
-        console.log('Found chapters:', chaptersData?.length, 'chapters');
-        setChapters(chaptersData || []);
-
-        if (chaptersData && chaptersData.length > 0) {
-          setActiveChapter(chaptersData[0]);
-        }
+        setChapters([]);
       }
 
-      const { data: progressData } = await supabase.from("user_progress").select("*").eq("user_id", user.id);
-
-      setProgress(progressData || []);
     } catch (error: any) {
       console.error("Error:", error);
       toast({
@@ -164,62 +121,24 @@ const Cours = () => {
     }
   };
 
-  const fetchMaterials = async (chapterId: string) => {
-    try {
-      const { data, error } = await supabase.from("course_materials").select("*").eq("chapter_id", chapterId);
-
-      if (error) throw error;
-      setMaterials(data || []);
-    } catch (error) {
-      console.error("Error fetching materials:", error);
-    }
-  };
-
   const handleMarkComplete = async () => {
     if (!activeChapter) return;
+    
+    setProgress(prev => ({
+      ...prev,
+      [activeChapter.id]: !prev[activeChapter.id]
+    }));
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const isCompleted = progress.some((p) => p.chapter_id === activeChapter.id);
-
-    try {
-      if (isCompleted) {
-        await supabase.from("user_progress").delete().eq("user_id", user.id).eq("chapter_id", activeChapter.id);
-      } else {
-        await supabase.from("user_progress").upsert({
-          user_id: user.id,
-          chapter_id: activeChapter.id,
-          completed: true,
-          completed_at: new Date().toISOString(),
-        });
-      }
-
-      // Re-fetch progress
-      const { data: progressData } = await supabase.from("user_progress").select("*").eq("user_id", user.id);
-
-      setProgress(progressData || []);
-
-      toast({
-        title: isCompleted ? "Marqué comme non complété" : "Chapitre complété !",
-        description: isCompleted ? "" : "Continuez comme ça ! 🎉",
-      });
-    } catch (error) {
-      console.error("Error updating progress:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour la progression",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: progress[activeChapter.id] ? "Marqué comme non complété" : "Chapitre complété !",
+      description: progress[activeChapter.id] ? "" : "Continuez comme ça ! 🎉",
+    });
   };
 
   const handleChapterChange = (direction: "prev" | "next") => {
-    if (!chapters.length) return;
+    if (!chapters.length || !activeChapter) return;
 
-    const currentIndex = chapters.findIndex((c) => c.id === activeChapter?.id);
+    const currentIndex = chapters.findIndex((c) => c.id === activeChapter.id);
     if (direction === "prev" && currentIndex > 0) {
       setActiveChapter(chapters[currentIndex - 1]);
     } else if (direction === "next" && currentIndex < chapters.length - 1) {
@@ -236,12 +155,18 @@ const Cours = () => {
     }
   };
 
+  const getFullName = (profile: Profile | null): string => {
+    if (!profile) return "Utilisateur";
+    const parts = [profile.first_name, profile.last_name].filter(Boolean);
+    return parts.length > 0 ? parts.join(" ") : "Utilisateur";
+  };
+
   const getSchoolLevelName = (level: string) => {
     const labels: Record<string, string> = {
-      sixieme: "6ème",
-      cinquieme: "5ème",
-      quatrieme: "4ème",
-      troisieme: "3ème",
+      "6eme": "6ème",
+      "5eme": "5ème",
+      "4eme": "4ème",
+      "3eme": "3ème",
       seconde: "Seconde",
       premiere: "Première",
       terminale: "Terminale",
@@ -253,219 +178,18 @@ const Cours = () => {
     if (!activeChapter) return;
 
     try {
-      console.log("Starting PDF generation for:", activeChapter.title);
-
       const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-
-      // Fonction pour convertir HSL en RGB
-      const hslToRgb = (hslString: string): [number, number, number] => {
-        const match = hslString.match(/hsl\((\d+\.?\d*)\s+(\d+\.?\d*)%\s+(\d+\.?\d*)%\)/);
-        if (!match) return [0, 0, 0]; // Noir par défaut
-
-        const h = parseFloat(match[1]) / 360;
-        const s = parseFloat(match[2]) / 100;
-        const l = parseFloat(match[3]) / 100;
-
-        let r, g, b;
-        if (s === 0) {
-          r = g = b = l;
-        } else {
-          const hue2rgb = (p: number, q: number, t: number) => {
-            if (t < 0) t += 1;
-            if (t > 1) t -= 1;
-            if (t < 1 / 6) return p + (q - p) * 6 * t;
-            if (t < 1 / 2) return q;
-            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-            return p;
-          };
-          const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-          const p = 2 * l - q;
-          r = hue2rgb(p, q, h + 1 / 3);
-          g = hue2rgb(p, q, h);
-          b = hue2rgb(p, q, h - 1 / 3);
-        }
-        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
-      };
-
-      // Récupérer les couleurs CSS du design system
-      const getComputedColor = (varName: string): [number, number, number] => {
-        const rootStyles = getComputedStyle(document.documentElement);
-        const hslValue = rootStyles.getPropertyValue(varName).trim();
-        if (!hslValue) return [0, 0, 0];
-        return hslToRgb(`hsl(${hslValue})`);
-      };
-
-      // Couleurs du design system
-      const primaryColor = getComputedColor("--primary");
-      const mutedColor = getComputedColor("--muted");
-      const foregroundColor = getComputedColor("--foreground");
-      const primaryForeground = getComputedColor("--primary-foreground");
-
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 20;
-      const maxWidth = pageWidth - 2 * margin;
-      let yPosition = margin;
-
-      const checkPageBreak = (neededSpace: number = 10) => {
-        if (yPosition + neededSpace > pageHeight - margin) {
-          doc.addPage();
-          yPosition = margin;
-          return true;
-        }
-        return false;
-      };
-
-      // Titre principal avec couleur primary
-      doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.setLineWidth(1);
-      doc.line(margin, yPosition, pageWidth - margin, yPosition);
-      yPosition += 8;
-
-      doc.setFontSize(22);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      const titleLines = doc.splitTextToSize(activeChapter.title, maxWidth);
-      titleLines.forEach((line: string) => {
-        doc.text(line, pageWidth / 2, yPosition, { align: "center" });
-        yPosition += 8;
-      });
-
-      yPosition += 3;
-      doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.line(margin, yPosition, pageWidth - margin, yPosition);
-      yPosition += 12;
-
-      // Parser le contenu HTML
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = activeChapter.content;
-
-      const processElement = (element: Element) => {
-        const tagName = element.tagName.toLowerCase();
-        const text = element.textContent?.trim() || "";
-
-        if (!text && tagName !== "ul" && tagName !== "ol") return;
-
-        switch (tagName) {
-          case "h2":
-            checkPageBreak(15);
-            yPosition += 8;
-            doc.setFontSize(16);
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-            const h2Lines = doc.splitTextToSize(text, maxWidth);
-            h2Lines.forEach((line: string) => {
-              doc.text(line, margin, yPosition);
-              yPosition += 7;
-            });
-            yPosition += 3;
-            doc.setTextColor(foregroundColor[0], foregroundColor[1], foregroundColor[2]);
-            break;
-
-          case "h3":
-            checkPageBreak(12);
-            yPosition += 6;
-            doc.setFontSize(13);
-            doc.setFont("helvetica", "bold");
-            doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-            const h3Height = 8;
-            doc.rect(margin, yPosition - 5, maxWidth, h3Height, "F");
-            doc.setTextColor(primaryForeground[0], primaryForeground[1], primaryForeground[2]);
-            doc.text(text, margin + 3, yPosition);
-            yPosition += 6;
-            doc.setTextColor(foregroundColor[0], foregroundColor[1], foregroundColor[2]);
-            break;
-
-          case "p":
-            checkPageBreak(8);
-            doc.setFontSize(11);
-            doc.setFont("helvetica", "normal");
-            doc.setTextColor(foregroundColor[0], foregroundColor[1], foregroundColor[2]);
-            const pLines = doc.splitTextToSize(text, maxWidth);
-            pLines.forEach((line: string) => {
-              checkPageBreak(6);
-              doc.text(line, margin, yPosition);
-              yPosition += 5;
-            });
-            yPosition += 3;
-            break;
-
-          case "blockquote":
-            checkPageBreak(15);
-            yPosition += 4;
-            doc.setFillColor(mutedColor[0], mutedColor[1], mutedColor[2]);
-            doc.setFontSize(11);
-            doc.setFont("helvetica", "italic");
-            const bqLines = doc.splitTextToSize(text, maxWidth - 8);
-            const bqHeight = bqLines.length * 5 + 6;
-            doc.rect(margin, yPosition - 3, maxWidth, bqHeight, "F");
-            doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-            doc.setLineWidth(1.5);
-            doc.line(margin, yPosition - 3, margin, yPosition + bqHeight - 3);
-            doc.setTextColor(foregroundColor[0], foregroundColor[1], foregroundColor[2]);
-            bqLines.forEach((line: string) => {
-              doc.text(line, margin + 5, yPosition);
-              yPosition += 5;
-            });
-            yPosition += 6;
-            doc.setFont("helvetica", "normal");
-            doc.setTextColor(foregroundColor[0], foregroundColor[1], foregroundColor[2]);
-            break;
-
-          case "ul":
-            yPosition += 2;
-            element.querySelectorAll("li").forEach((li) => {
-              const liText = li.textContent?.trim() || "";
-              if (liText) {
-                checkPageBreak(6);
-                doc.setFontSize(11);
-                doc.setFont("helvetica", "normal");
-                doc.setTextColor(foregroundColor[0], foregroundColor[1], foregroundColor[2]);
-                const liLines = doc.splitTextToSize("• " + liText, maxWidth - 8);
-                liLines.forEach((line: string, index: number) => {
-                  doc.text(line, margin + (index > 0 ? 5 : 0), yPosition);
-                  yPosition += 5;
-                });
-              }
-            });
-            yPosition += 3;
-            break;
-
-          case "ol":
-            yPosition += 2;
-            element.querySelectorAll("li").forEach((li, index) => {
-              const liText = li.textContent?.trim() || "";
-              if (liText) {
-                checkPageBreak(6);
-                doc.setFontSize(11);
-                doc.setFont("helvetica", "normal");
-                doc.setTextColor(foregroundColor[0], foregroundColor[1], foregroundColor[2]);
-                const liLines = doc.splitTextToSize(`${index + 1}. ${liText}`, maxWidth - 8);
-                liLines.forEach((line: string, lineIndex: number) => {
-                  doc.text(line, margin + (lineIndex > 0 ? 5 : 0), yPosition);
-                  yPosition += 5;
-                });
-                doc.setTextColor(foregroundColor[0], foregroundColor[1], foregroundColor[2]);
-              }
-            });
-            yPosition += 3;
-            break;
-
-          default:
-            // Pour les éléments non gérés, traiter récursivement les enfants
-            Array.from(element.children).forEach((child) => processElement(child));
-        }
-      };
-
-      Array.from(tempDiv.children).forEach((child) => processElement(child));
+      const doc = new jsPDF();
+      
+      doc.setFontSize(18);
+      doc.text(activeChapter.title, 20, 20);
+      
+      doc.setFontSize(12);
+      const content = activeChapter.content?.replace(/<[^>]*>/g, '') || 'Contenu non disponible';
+      const lines = doc.splitTextToSize(content, 170);
+      doc.text(lines.slice(0, 40), 20, 35);
 
       doc.save(`${activeChapter.title}.pdf`);
-      console.log("PDF generated successfully");
 
       toast({
         title: "PDF téléchargé",
@@ -489,37 +213,30 @@ const Cours = () => {
     );
   }
 
-  if (!course) {
+  if (chapters.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
-        <h2 className="text-2xl font-bold mb-4">Cours non trouvé</h2>
-        <Button onClick={() => navigate("/dashboard")}>Retour au tableau de bord</Button>
+        <h2 className="text-2xl font-bold mb-4">Cours non disponible</h2>
+        <p className="text-muted-foreground mb-6">
+          Aucun cours n'est disponible pour cette matière et ce niveau.
+        </p>
+        <Button onClick={() => navigate("/liste-cours")}>Retour à la liste des cours</Button>
       </div>
     );
   }
 
-  const currentIndex = chapters.findIndex((c) => c.id === activeChapter?.id);
-  const completedChapters = progress.filter((p) => chapters.some((c) => c.id === p.chapter_id)).length;
-  const progressPercentage = chapters.length > 0 ? (completedChapters / chapters.length) * 100 : 0;
-
-  const schoolLevelLabels: Record<string, string> = {
-    sixieme: "6ème",
-    cinquieme: "5ème",
-    quatrieme: "4ème",
-    troisieme: "3ème",
-    seconde: "Seconde",
-    premiere: "Première",
-    terminale: "Terminale",
-  };
+  const fullName = getFullName(profile);
+  const chapterContent = activeChapter ? getChapterContent(activeChapter.id) : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <div
-              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => navigate("/dashboard")}
+            <div 
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity" 
+              onClick={() => navigate("/liste-cours")}
             >
               <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
                 <GraduationCap className="h-6 w-6 text-white" />
@@ -533,12 +250,14 @@ const Cours = () => {
                   <div className="flex items-center gap-2 cursor-pointer hover:bg-accent/10 rounded-lg p-2 transition-colors">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={profile?.avatar_url || undefined} />
-                      <AvatarFallback>{profile?.full_name?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                      <AvatarFallback>
+                        {fullName.charAt(0).toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="text-left hidden md:block">
-                      <p className="text-sm font-medium">{profile?.full_name || "Utilisateur"}</p>
+                      <p className="text-sm font-medium">{fullName}</p>
                       <p className="text-xs text-muted-foreground">
-                        {profile?.school_level && getSchoolLevelName(profile.school_level)}
+                        {schoolLevel && getSchoolLevelName(schoolLevel)}
                       </p>
                     </div>
                   </div>
@@ -547,10 +266,6 @@ const Cours = () => {
                   <DropdownMenuItem onClick={() => navigate("/account")}>
                     <UserIcon className="mr-2 h-4 w-4" />
                     <span>Gérer mon compte</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/dashboard")}>
-                    <GraduationCap className="mr-2 h-4 w-4" />
-                    <span>Tableau de bord</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-destructive">
@@ -564,148 +279,219 @@ const Cours = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 mt-20">
+      <main className="container mx-auto px-4 pt-24 pb-8">
+        {/* Breadcrumb */}
         <Breadcrumb className="mb-6">
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/" className="transition-colors hover:text-foreground">
-                Accueil
+              <BreadcrumbLink onClick={() => navigate("/liste-cours")} className="cursor-pointer">
+                <ArrowLeft className="h-4 w-4 mr-2 inline" />
+                Liste des cours
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink href="/liste-cours" className="transition-colors hover:text-foreground">
-                {schoolLevelLabels[schoolLevel] || "Mes matières"}
-              </BreadcrumbLink>
+              <BreadcrumbPage>{subject?.name || "Cours"}</BreadcrumbPage>
             </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              {viewMode === "content" ? (
-                <BreadcrumbLink
-                  onClick={() => setViewMode("grid")}
-                  className="cursor-pointer transition-colors hover:text-foreground"
-                >
-                  {subject?.name || subjectId?.charAt(0).toUpperCase() + subjectId?.slice(1)}
-                </BreadcrumbLink>
-              ) : (
-                <BreadcrumbPage>
-                  {subject?.name || subjectId?.charAt(0).toUpperCase() + subjectId?.slice(1)}
-                </BreadcrumbPage>
-              )}
-            </BreadcrumbItem>
-            {viewMode === "content" && activeChapter && (
-              <>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>
-                    Chapitre {currentIndex + 1}: {activeChapter.title}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </>
-            )}
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">
-              {viewMode === "content" && activeChapter
-                ? activeChapter.title
-                : subject?.name || subjectId?.charAt(0).toUpperCase() + subjectId?.slice(1)}
-            </h1>
+        {/* Progress bar */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <h1 className="text-2xl font-bold">{subject?.name || "Cours"}</h1>
+            <span className="text-sm text-muted-foreground">
+              {Object.values(progress).filter(Boolean).length}/{chapters.length} chapitres terminés
+            </span>
           </div>
+          <Progress 
+            value={(Object.values(progress).filter(Boolean).length / chapters.length) * 100} 
+            className="h-2" 
+          />
+        </div>
 
-          {viewMode === "content" && (
-            <ActivityCards 
-              onCardClick={(id) => setActiveActivity(activeActivity === id ? null : id)} 
-              activeCard={activeActivity}
-            />
-          )}
+        {/* Active activity view */}
+        {activeActivity === "quiz" && activeChapter && chapterContent?.quiz && (
+          <ChapterMathQuiz
+            questions={chapterContent.quiz}
+            chapterTitle={activeChapter.title}
+            chapterId={activeChapter.id}
+            onClose={() => setActiveActivity(null)}
+          />
+        )}
 
-          {activeActivity === "quiz" && (() => {
-            const currentIndex = chapters.findIndex(c => c.id === activeChapter?.id);
-            const chapterContent = getChapterContent(currentIndex) || mathSecondeChapters[0];
-            return (
-              <ChapterMathQuiz 
-                questions={chapterContent.quizzes} 
-                chapterTitle={chapterContent.chapterTitle}
-                chapterId={activeChapter?.id || `chapter-${currentIndex}`}
-                onClose={() => setActiveActivity(null)} 
-              />
-            );
-          })()}
-          
-          {activeActivity === "exercices" && (() => {
-            const currentIndex = chapters.findIndex(c => c.id === activeChapter?.id);
-            const chapterContent = getChapterContent(currentIndex) || mathSecondeChapters[0];
-            return (
-              <ChapterMathExercises 
-                exercises={chapterContent.exercises} 
-                chapterTitle={chapterContent.chapterTitle}
-                chapterId={activeChapter?.id || `chapter-${currentIndex}`}
-                onClose={() => setActiveActivity(null)} 
-              />
-            );
-          })()}
+        {activeActivity === "exercises" && activeChapter && chapterContent?.exercises && (
+          <ChapterMathExercises
+            exercises={chapterContent.exercises}
+            chapterTitle={activeChapter.title}
+            chapterId={activeChapter.id}
+            onClose={() => setActiveActivity(null)}
+          />
+        )}
 
-          {!activeActivity && viewMode === "grid" ? (
-            <ChapterGrid
-              chapters={chapters.map((c) => ({
-                ...c,
-                completed: progress.some((p) => p.chapter_id === c.id),
-              }))}
-              onChapterSelect={(id) => {
-                const chapter = chapters.find((c) => c.id === id);
-                if (chapter) {
+        {/* Grid view - Chapter selection */}
+        {!activeActivity && viewMode === "grid" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {chapters.map((chapter, index) => (
+              <Card 
+                key={chapter.id}
+                className={`cursor-pointer transition-all hover:shadow-lg ${
+                  progress[chapter.id] ? 'border-green-500/50 bg-green-500/5' : ''
+                }`}
+                onClick={() => {
                   setActiveChapter(chapter);
                   setViewMode("content");
-                }
-              }}
-              subjectId={subjectId}
-            />
-          ) : !activeActivity && (
-            <div ref={contentRef} className="space-y-4">
-              {activeChapter && (
-                <CourseContent
-                  content={activeChapter.content}
-                  materials={materials}
-                  completed={progress.some((p) => p.chapter_id === activeChapter.id)}
-                  onMarkComplete={handleMarkComplete}
-                  onPrevious={() => handleChapterChange("prev")}
-                  onNext={() => handleChapterChange("next")}
-                  hasPrevious={chapters.findIndex((c) => c.id === activeChapter?.id) > 0}
-                  hasNext={chapters.findIndex((c) => c.id === activeChapter?.id) < chapters.length - 1}
-                  onDownloadPDF={handleDownloadPDF}
-                />
-              )}
+                }}
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
+                      {index + 1}
+                    </span>
+                    {chapter.title}
+                    {progress[chapter.id] && (
+                      <Check className="h-5 w-5 text-green-500 ml-auto" />
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {chapter.content?.replace(/<[^>]*>/g, '').substring(0, 100)}...
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Content view - Chapter details */}
+        {!activeActivity && viewMode === "content" && activeChapter && (
+          <div className="space-y-6">
+            <div className="flex gap-2 mb-4">
+              <Button variant="outline" onClick={() => setViewMode("grid")}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Retour aux chapitres
+              </Button>
             </div>
-          )}
-        </div>
+
+            {/* Chapter content */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-2xl">{activeChapter.title}</CardTitle>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
+                      <Download className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
+                    <Button 
+                      variant={progress[activeChapter.id] ? "secondary" : "default"}
+                      size="sm"
+                      onClick={handleMarkComplete}
+                    >
+                      {progress[activeChapter.id] ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Complété
+                        </>
+                      ) : (
+                        "Marquer comme terminé"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div 
+                  className="prose prose-sm dark:prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: activeChapter.content || "<p>Contenu non disponible</p>" }}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Activity cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card 
+                className="cursor-pointer hover:shadow-lg transition-all"
+                onClick={() => setActiveActivity("quiz")}
+              >
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                    <Brain className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Quiz</h3>
+                    <p className="text-sm text-muted-foreground">Testez vos connaissances</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className="cursor-pointer hover:shadow-lg transition-all"
+                onClick={() => setActiveActivity("exercises")}
+              >
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center">
+                    <PenTool className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Exercices</h3>
+                    <p className="text-sm text-muted-foreground">Pratiquez avec des exercices</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className="cursor-pointer hover:shadow-lg transition-all"
+                onClick={() => navigate(`/revision/${subjectId}`)}
+              >
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <BookOpen className="h-6 w-6 text-green-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Révision</h3>
+                    <p className="text-sm text-muted-foreground">Fiches de révision</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Navigation */}
+            <div className="flex justify-between">
+              <Button 
+                variant="outline" 
+                onClick={() => handleChapterChange("prev")}
+                disabled={chapters.findIndex(c => c.id === activeChapter.id) === 0}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Chapitre précédent
+              </Button>
+              <Button 
+                onClick={() => handleChapterChange("next")}
+                disabled={chapters.findIndex(c => c.id === activeChapter.id) === chapters.length - 1}
+              >
+                Chapitre suivant
+                <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
+              </Button>
+            </div>
+          </div>
+        )}
       </main>
 
-      {/* Floating Chat Button */}
-      {!isChatOpen && (
-        <Button
-          onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
-          size="icon"
-        >
-          <MessageCircle className="h-6 w-6" />
-        </Button>
-      )}
+      {/* Chat toggle button */}
+      <Button
+        className="fixed bottom-6 right-6 rounded-full h-14 w-14 shadow-lg"
+        onClick={() => setIsChatOpen(!isChatOpen)}
+      >
+        {isChatOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
+      </Button>
 
-      {/* Chat Window */}
+      {/* Chat panel */}
       {isChatOpen && (
-        <>
-          {/* Overlay pour fermer le chat en cliquant à l'extérieur */}
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => setIsChatOpen(false)}
-          />
-          <div className="fixed bottom-6 right-6 w-[400px] h-[600px] bg-card border rounded-lg shadow-xl z-50 flex flex-col overflow-hidden">
-            <ChatBot messages={chatMessages} setMessages={setChatMessages} subject={subject?.name || subjectId} />
-          </div>
-        </>
+        <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-background border rounded-lg shadow-xl z-50 overflow-hidden">
+          <ChatBot messages={chatMessages} setMessages={setChatMessages} />
+        </div>
       )}
     </div>
   );

@@ -13,16 +13,9 @@ import {
   Beaker,
   Globe,
   Calculator,
-  Brain,
-  Palette,
-  Landmark,
   Languages,
   Microscope,
-  Music,
-  HeartPulse,
-  Code,
-  BookMarked,
-  Target,
+  Landmark,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -37,9 +30,9 @@ import {
 
 interface Profile {
   id: string;
-  full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   avatar_url: string | null;
-  role: "student" | "parent" | "teacher" | "admin" | "editeur" | "reviseur";
   school_level: string | null;
   email: string | null;
 }
@@ -49,16 +42,19 @@ interface Subject {
   name: string;
   icon: any;
   color: string;
-  category: "general" | "speciality";
+  available: boolean;
 }
 
-interface DbSubject {
-  id: string;
-  name: string;
-  icon_name: string;
-  color: string;
-  category: "general" | "speciality";
-}
+// Static subjects since the database tables don't exist
+const staticSubjects: Subject[] = [
+  { id: "math", name: "Mathématiques", icon: Calculator, color: "#3B82F6", available: true },
+  { id: "physics", name: "Physique-Chimie", icon: Beaker, color: "#8B5CF6", available: false },
+  { id: "french", name: "Français", icon: BookOpen, color: "#EF4444", available: false },
+  { id: "history", name: "Histoire-Géographie", icon: Globe, color: "#F59E0B", available: false },
+  { id: "english", name: "Anglais", icon: Languages, color: "#10B981", available: false },
+  { id: "biology", name: "SVT", icon: Microscope, color: "#06B6D4", available: false },
+  { id: "philosophy", name: "Philosophie", icon: Landmark, color: "#EC4899", available: false },
+];
 
 const ListeCours = () => {
   const navigate = useNavigate();
@@ -67,7 +63,6 @@ const ListeCours = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [subjects, setSubjects] = useState<Subject[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -95,15 +90,14 @@ const ListeCours = () => {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, avatar_url, school_level, email")
+        .eq("id", userId)
+        .single();
 
       if (error) throw error;
       setProfile(data);
-
-      // Fetch subjects for the user's school level
-      if (data?.school_level) {
-        await fetchSubjects(data.school_level);
-      }
     } catch (error: any) {
       toast({
         title: "Erreur",
@@ -115,90 +109,37 @@ const ListeCours = () => {
     }
   };
 
-  const fetchSubjects = async (schoolLevel: string) => {
-    try {
-      const { data: classSubjects, error } = await supabase
-        .from("class_subjects")
-        .select(
-          `
-          subject_id,
-          subjects:subject_id (
-            id,
-            name,
-            icon_name,
-            color,
-            category
-          )
-        `,
-        )
-        .eq("school_level", schoolLevel as any);
-
-      if (error) throw error;
-
-      const iconMap: Record<string, any> = {
-        Brain,
-        Landmark,
-        Languages,
-        BookOpen,
-        Calculator,
-        Globe,
-        Microscope,
-        Beaker,
-        Palette,
-        Music,
-        HeartPulse,
-        Code,
-      };
-
-      const subjectsData: Subject[] = classSubjects
-        .filter((cs) => cs.subjects)
-        .map((cs: any) => ({
-          id: cs.subjects.id,
-          name: cs.subjects.name,
-          icon: iconMap[cs.subjects.icon_name] || BookOpen,
-          color: cs.subjects.color,
-          category: cs.subjects.category,
-        }));
-
-      setSubjects(subjectsData);
-    } catch (error: any) {
-      console.error("Error fetching subjects:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les matières",
-        variant: "destructive",
-      });
-    }
+  const getFullName = (profile: Profile | null): string => {
+    if (!profile) return "Utilisateur";
+    const parts = [profile.first_name, profile.last_name].filter(Boolean);
+    return parts.length > 0 ? parts.join(" ") : "Utilisateur";
   };
 
   const getSchoolLevelName = (level: string) => {
-    const levels = {
-      cp: "CP",
-      ce1: "CE1",
-      ce2: "CE2",
-      cm1: "CM1",
-      cm2: "CM2",
-      sixieme: "6ème",
-      cinquieme: "5ème",
-      quatrieme: "4ème",
-      troisieme: "3ème",
+    const levels: Record<string, string> = {
+      "6eme": "6ème",
+      "5eme": "5ème",
+      "4eme": "4ème",
+      "3eme": "3ème",
       seconde: "Seconde",
       premiere: "Première",
       terminale: "Terminale",
     };
-    return levels[level as keyof typeof levels] || "Votre classe";
+    return levels[level] || level || "Votre classe";
   };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast({
       title: "Déconnexion",
-      description: "Vous avez été déconnecté avec succès!!!!",
+      description: "Vous avez été déconnecté avec succès",
     });
     navigate("/");
   };
 
-  const filteredSubjects = subjects.filter((subject) => subject.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredSubjects = staticSubjects.filter((subject) => 
+    subject.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -208,13 +149,14 @@ const ListeCours = () => {
     );
   }
 
+  const fullName = getFullName(profile);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
             <div
               className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate("/dashboard")}
@@ -225,17 +167,16 @@ const ListeCours = () => {
               <span className="text-xl font-bold">AcadémiePlus</span>
             </div>
 
-            {/* Right Side: User Menu */}
             <div className="flex items-center gap-4">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div className="flex items-center gap-2 cursor-pointer hover:bg-accent/10 rounded-lg p-2 transition-colors">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={profile?.avatar_url || undefined} />
-                      <AvatarFallback>{profile?.full_name?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                      <AvatarFallback>{fullName.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div className="text-left hidden md:block">
-                      <p className="text-sm font-medium">{profile?.full_name || "Utilisateur"}</p>
+                      <p className="text-sm font-medium">{fullName}</p>
                       <p className="text-xs text-muted-foreground">
                         {profile?.school_level && getSchoolLevelName(profile.school_level)}
                       </p>
@@ -302,12 +243,14 @@ const ListeCours = () => {
                   return (
                     <Card
                       key={subject.id}
-                      className="group transition-all duration-300 hover:shadow-2xl border-2 hover:border-primary/50 animate-fade-in overflow-hidden cursor-pointer"
+                      className={`group transition-all duration-300 hover:shadow-2xl border-2 hover:border-primary/50 animate-fade-in overflow-hidden ${
+                        subject.available ? "cursor-pointer" : "opacity-60 cursor-not-allowed"
+                      }`}
                       style={{
                         animationDelay: `${index * 50}ms`,
                         backgroundColor: `${subject.color}15`,
                       }}
-                      onClick={() => navigate(`/cours/${subject.id}`)}
+                      onClick={() => subject.available && navigate(`/cours/${subject.id}`)}
                     >
                       <CardContent className="p-6">
                         <div className="flex flex-col items-center text-center gap-4">
@@ -317,7 +260,12 @@ const ListeCours = () => {
                           >
                             <Icon className="h-8 w-8 text-white" />
                           </div>
-                          <h3 className="font-semibold text-lg leading-tight">{subject.name}</h3>
+                          <div>
+                            <h3 className="font-semibold text-lg leading-tight">{subject.name}</h3>
+                            {!subject.available && (
+                              <span className="text-xs text-muted-foreground">Bientôt disponible</span>
+                            )}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

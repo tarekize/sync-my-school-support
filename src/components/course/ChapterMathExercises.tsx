@@ -6,7 +6,7 @@ import { ArrowLeft, BookOpen, CheckCircle2, XCircle, PenTool, Send, Eye, Clock }
 import { ChapterExercise } from "@/data/mathSecondeChapters";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
-import { useTimeTracking, useExercisesTimes, formatTime } from "@/hooks/useTimeTracking";
+import { useTimeTracking, formatTime } from "@/hooks/useTimeTracking";
 
 interface ChapterMathExercisesProps {
   exercises: ChapterExercise[];
@@ -20,6 +20,7 @@ export const ChapterMathExercises = ({ exercises, chapterTitle, chapterId, onClo
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [submittedAnswers, setSubmittedAnswers] = useState<Record<string, { submitted: boolean; correct: boolean }>>({});
   const [showCorrection, setShowCorrection] = useState<Record<string, boolean>>({});
+  const [exerciseTimes, setExerciseTimes] = useState<Record<string, number>>({});
 
   const exercise = currentExercise !== null ? exercises[currentExercise] : null;
 
@@ -30,7 +31,7 @@ export const ChapterMathExercises = ({ exercises, chapterTitle, chapterId, onClo
   }, [chapterId, currentExercise]);
 
   // Time tracking pour l'exercice en cours
-  const { formattedTime: currentExerciseTime } = useTimeTracking({
+  const { formattedTime: currentExerciseTime, elapsedSeconds } = useTimeTracking({
     contentType: "exercise",
     contentId: currentExerciseContentId,
     chapterId: chapterId,
@@ -38,14 +39,15 @@ export const ChapterMathExercises = ({ exercises, chapterTitle, chapterId, onClo
     enabled: currentExercise !== null,
   });
 
-  // IDs pour tous les exercices
-  const exerciseIds = useMemo(
-    () => exercises.map((_, idx) => `exercise-${chapterId}-${idx}`),
-    [exercises, chapterId]
-  );
-  
-  // Temps pour tous les exercices
-  const { times: exerciseTimes } = useExercisesTimes(chapterId, exerciseIds);
+  // Update exercise times when navigating away
+  useEffect(() => {
+    if (currentExerciseContentId && elapsedSeconds > 0) {
+      setExerciseTimes(prev => ({
+        ...prev,
+        [currentExerciseContentId]: elapsedSeconds
+      }));
+    }
+  }, [currentExerciseContentId, elapsedSeconds]);
 
   const handleAnswerChange = (id: string, value: string) => {
     setUserAnswers(prev => ({ ...prev, [id]: value }));
@@ -278,7 +280,8 @@ export const ChapterMathExercises = ({ exercises, chapterTitle, chapterId, onClo
           {exercises.map((ex, index) => {
             const submitted = isSubmitted(ex.id);
             const correct = isCorrect(ex.id);
-            const timeForExercise = exerciseTimes[`exercise-${chapterId}-${index}`] || 0;
+            const exerciseId = `exercise-${chapterId}-${index}`;
+            const timeForExercise = exerciseTimes[exerciseId] || 0;
             
             return (
               <button

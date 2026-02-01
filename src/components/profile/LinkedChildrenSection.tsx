@@ -24,37 +24,22 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, Mail, Hash, Trash2, Eye, User, GraduationCap, Loader2 } from "lucide-react";
+import { UserPlus, Hash, Trash2, Eye, User, GraduationCap, Loader2 } from "lucide-react";
 import { useLinkedChildren, LinkedChild } from "@/hooks/useProfile";
 import { getSchoolLevelLabel } from "@/lib/validation";
 import { toast } from "sonner";
 
+// Helper to get full name from child profile
+const getChildFullName = (child: LinkedChild['child']): string => {
+  const parts = [child.first_name, child.last_name].filter(Boolean);
+  return parts.length > 0 ? parts.join(" ") : "Sans nom";
+};
+
 export function LinkedChildrenSection() {
-  const { children, loading, addChildByEmail, addChildByCode, removeChild } = useLinkedChildren();
+  const { children, loading, addChildByCode, removeChild } = useLinkedChildren();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  const handleAddByEmail = async () => {
-    if (!email.trim()) {
-      toast.error("Veuillez entrer un email");
-      return;
-    }
-
-    setSubmitting(true);
-    const result = await addChildByEmail(email.trim());
-    setSubmitting(false);
-
-    if (result.success) {
-      toast.success(result.message);
-      setEmail("");
-      setDialogOpen(false);
-    } else {
-      toast.error(result.message);
-    }
-  };
 
   const handleAddByCode = async () => {
     if (!code.trim()) {
@@ -122,76 +107,36 @@ export function LinkedChildrenSection() {
               <DialogHeader>
                 <DialogTitle>Ajouter un enfant</DialogTitle>
                 <DialogDescription>
-                  Liez le compte de votre enfant à votre profil parent
+                  Liez le compte de votre enfant à votre profil parent en utilisant son code de liaison
                 </DialogDescription>
               </DialogHeader>
 
-              <Tabs defaultValue="email" className="mt-4">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="email" className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    Par email
-                  </TabsTrigger>
-                  <TabsTrigger value="code" className="flex items-center gap-2">
-                    <Hash className="h-4 w-4" />
-                    Par code
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="email" className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label>Email de l'enfant</Label>
-                    <Input
-                      type="email"
-                      placeholder="email@exemple.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Votre enfant recevra une notification pour valider le lien
-                    </p>
-                  </div>
-                  <Button
-                    onClick={handleAddByEmail}
-                    disabled={submitting}
-                    className="w-full"
-                  >
-                    {submitting ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Mail className="h-4 w-4 mr-2" />
-                    )}
-                    Envoyer la demande
-                  </Button>
-                </TabsContent>
-
-                <TabsContent value="code" className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label>Code de liaison</Label>
-                    <Input
-                      placeholder="ABC123"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.toUpperCase())}
-                      maxLength={6}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Demandez à votre enfant de générer un code depuis son profil
-                    </p>
-                  </div>
-                  <Button
-                    onClick={handleAddByCode}
-                    disabled={submitting}
-                    className="w-full"
-                  >
-                    {submitting ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Hash className="h-4 w-4 mr-2" />
-                    )}
-                    Valider le code
-                  </Button>
-                </TabsContent>
-              </Tabs>
+              <div className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label>Code de liaison</Label>
+                  <Input
+                    placeholder="ABC123"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    maxLength={8}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Demandez à votre enfant de générer un code depuis son profil
+                  </p>
+                </div>
+                <Button
+                  onClick={handleAddByCode}
+                  disabled={submitting}
+                  className="w-full"
+                >
+                  {submitting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Hash className="h-4 w-4 mr-2" />
+                  )}
+                  Valider le code
+                </Button>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -228,8 +173,9 @@ function ChildCard({
   onRemove: () => void;
 }) {
   const child = link.child;
-  const initials = child.full_name
-    ?.split(" ")
+  const fullName = getChildFullName(child);
+  const initials = fullName
+    .split(" ")
     .map((n) => n[0])
     .join("")
     .toUpperCase()
@@ -247,9 +193,7 @@ function ChildCard({
 
         <div>
           <div className="flex items-center gap-2">
-            <h4 className="font-medium">
-              {child.full_name || `${child.first_name} ${child.last_name}`}
-            </h4>
+            <h4 className="font-medium">{fullName}</h4>
             <Badge
               variant={link.status === "active" ? "default" : "secondary"}
             >
@@ -281,7 +225,7 @@ function ChildCard({
             <AlertDialogHeader>
               <AlertDialogTitle>Supprimer le lien ?</AlertDialogTitle>
               <AlertDialogDescription>
-                Voulez-vous vraiment supprimer le lien avec {child.full_name} ?
+                Voulez-vous vraiment supprimer le lien avec {fullName} ?
                 Cette action est réversible, vous pourrez recréer le lien ultérieurement.
               </AlertDialogDescription>
             </AlertDialogHeader>

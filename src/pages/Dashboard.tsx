@@ -18,9 +18,9 @@ import {
 
 interface Profile {
   id: string;
-  full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   avatar_url: string | null;
-  role: 'student' | 'parent' | 'teacher' | 'admin' | 'editeur' | 'reviseur';
   school_level: string | null;
   email: string | null;
 }
@@ -30,6 +30,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -41,6 +42,7 @@ const Dashboard = () => {
       }
       setUser(session.user);
       fetchProfile(session.user.id);
+      fetchUserRole(session.user.id);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -50,6 +52,7 @@ const Dashboard = () => {
       }
       setUser(session.user);
       fetchProfile(session.user.id);
+      fetchUserRole(session.user.id);
     });
 
     return () => subscription.unsubscribe();
@@ -59,7 +62,7 @@ const Dashboard = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, first_name, last_name, avatar_url, school_level, email')
         .eq('id', userId)
         .single();
 
@@ -76,23 +79,36 @@ const Dashboard = () => {
     }
   };
 
-  const getRoleName = (role: string) => {
-    const roles = {
-      student: 'Élève',
-      parent: 'Parent',
-      teacher: 'Enseignant',
-      admin: 'Administrateur'
-    };
-    return roles[role as keyof typeof roles] || role;
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setUserRole(data.role);
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  };
+
+  const getFullName = (profile: Profile | null): string => {
+    if (!profile) return "Utilisateur";
+    const parts = [profile.first_name, profile.last_name].filter(Boolean);
+    return parts.length > 0 ? parts.join(" ") : "Utilisateur";
   };
 
   const getSchoolLevelName = (level: string) => {
-    const levels = {
+    const levels: Record<string, string> = {
       cp: 'CP', ce1: 'CE1', ce2: 'CE2', cm1: 'CM1', cm2: 'CM2',
       sixieme: '6ème', cinquieme: '5ème', quatrieme: '4ème', troisieme: '3ème',
       seconde: 'Seconde', premiere: 'Première', terminale: 'Terminale'
     };
-    return levels[level as keyof typeof levels] || level;
+    return levels[level] || level;
   };
 
   const handleLogout = async () => {
@@ -111,6 +127,8 @@ const Dashboard = () => {
       </div>
     );
   }
+
+  const fullName = getFullName(profile);
 
   return (
     <div className="min-h-screen bg-background">
@@ -158,11 +176,11 @@ const Dashboard = () => {
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={profile?.avatar_url || undefined} />
                       <AvatarFallback>
-                        {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
+                        {fullName.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="text-left hidden md:block">
-                      <p className="text-sm font-medium">{profile?.full_name || 'Utilisateur'}</p>
+                      <p className="text-sm font-medium">{fullName}</p>
                       <p className="text-xs text-muted-foreground">
                         {profile?.school_level && getSchoolLevelName(profile.school_level)}
                       </p>
@@ -191,7 +209,7 @@ const Dashboard = () => {
           {/* Welcome Message */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">
-              Bonjour {profile?.full_name || 'Utilisateur'} 👋
+              Bonjour {fullName} 👋
             </h1>
             <p className="text-muted-foreground">
               Bienvenue sur votre tableau de bord
@@ -200,8 +218,11 @@ const Dashboard = () => {
 
           {/* Dashboard Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {profile?.role === 'parent' && (
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            {userRole === 'parent' && (
+              <Card 
+                className="hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => navigate("/mes-informations")}
+              >
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-5 w-5" />
@@ -214,47 +235,70 @@ const Dashboard = () => {
               </Card>
             )}
 
-            {profile?.role === 'teacher' && (
+            {userRole === 'admin' && (
               <>
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <Card 
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => navigate("/admin")}
+                >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Users className="h-5 w-5" />
-                      Mes Classes
+                      Gestion Utilisateurs
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">Gérez vos classes et élèves</p>
+                    <p className="text-muted-foreground">Gérez les utilisateurs de la plateforme</p>
                   </CardContent>
                 </Card>
 
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <Card 
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => navigate("/editorial")}
+                >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <BookOpen className="h-5 w-5" />
-                      Créer du Contenu
+                      Espace Éditorial
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">Créez et partagez des cours et exercices</p>
+                    <p className="text-muted-foreground">Créez et gérez le contenu pédagogique</p>
+                  </CardContent>
+                </Card>
+
+                <Card 
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => navigate("/analytics")}
+                >
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="h-5 w-5" />
+                      Analytics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">Consultez les statistiques d'utilisation</p>
                   </CardContent>
                 </Card>
               </>
             )}
 
-            {profile?.role === 'admin' && (
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="h-5 w-5" />
-                    Administration
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">Gérez la plateforme et les utilisateurs</p>
-                </CardContent>
-              </Card>
-            )}
+            {/* Default cards for all users */}
+            <Card 
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => navigate("/liste-cours")}
+            >
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5" />
+                  Mes Cours
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Accédez à vos cours et leçons</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>
