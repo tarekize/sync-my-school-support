@@ -8,7 +8,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  hasRole: (role: 'admin' | 'parent' | 'student' | 'teacher') => Promise<boolean>;
+  hasRole: (role: 'admin' | 'parent' | 'student') => Promise<boolean>;
   isAdmin: () => Promise<boolean>;
 }
 
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     navigate('/auth');
   };
 
-  const hasRole = async (role: 'admin' | 'parent' | 'student' | 'teacher'): Promise<boolean> => {
+  const hasRole = async (role: 'admin' | 'parent' | 'student'): Promise<boolean> => {
     if (!user) return false;
     
     const { data, error } = await supabase.rpc('has_role', {
@@ -58,22 +58,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    return data ?? false;
+    return Boolean(data);
   };
 
   const isAdmin = async (): Promise<boolean> => {
-    if (!user) return false;
-
-    const { data, error } = await supabase.rpc('is_admin', {
-      _user_id: user.id,
-    });
-
-    if (error) {
-      console.error('Error checking admin:', error);
-      return false;
-    }
-
-    return data ?? false;
+    return hasRole('admin');
   };
 
   const value = {

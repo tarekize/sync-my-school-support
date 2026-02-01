@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -37,45 +36,14 @@ export const PrepaidCodeDialog = ({ open, onOpenChange }: PrepaidCodeDialogProps
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: "Erreur",
-          description: "Vous devez être connecté pour activer un code",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { data, error } = await supabase.rpc('activate_prepaid_code', {
-        p_code: code.trim().toUpperCase(),
-        p_user_id: user.id
+      // TODO: Implement prepaid code activation when the function exists
+      // For now, show a message that this feature is coming soon
+      toast({
+        title: "Fonctionnalité bientôt disponible",
+        description: "L'activation des codes prépayés sera disponible prochainement.",
       });
-
-      if (error) throw error;
-
-      const result = data[0];
-
-      if (result.success) {
-        toast({
-          title: "✅ Code activé !",
-          description: result.message,
-        });
-        onOpenChange(false);
-        setCode("");
-        
-        // Rediriger vers les abonnements après un court délai
-        setTimeout(() => {
-          navigate("/abonnements");
-        }, 1500);
-      } else {
-        toast({
-          title: "Erreur d'activation",
-          description: result.message,
-          variant: "destructive",
-        });
-      }
+      onOpenChange(false);
+      setCode("");
     } catch (error: any) {
       toast({
         title: "Erreur",

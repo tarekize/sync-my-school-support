@@ -2,32 +2,25 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { Tables } from "@/integrations/supabase/types";
 
-export interface AdminUser {
-  id: string;
-  email: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  full_name: string | null;
-  avatar_url: string | null;
-  phone: string | null;
-  role: string | null;
-  school_level: string | null;
-  account_active: boolean | null;
-  created_at: string;
-  updated_at: string;
+type ProfileRow = Tables<"profiles">;
+
+export interface AdminUser extends ProfileRow {
+  // Computed fields from user_roles join
+  roles?: string[];
 }
 
 export interface ActivityLog {
   id: string;
-  user_id: string;
+  user_id: string | null;
   action: string;
-  entity_type: string | null;
-  entity_id: string | null;
   details: any;
-  created_at: string;
+  ip_address: string | null;
+  created_at: string | null;
   user?: {
-    full_name: string | null;
+    first_name: string | null;
+    last_name: string | null;
     email: string | null;
   };
 }
@@ -65,20 +58,34 @@ export function useAdminUsers() {
 
       if (error) throw error;
 
-      setUsers(data || []);
+      // Fetch roles for all users
+      const { data: rolesData } = await supabase
+        .from("user_roles")
+        .select("user_id, role");
 
-      // Calculate stats
+      // Map roles to users
+      const usersWithRoles = (data || []).map(profile => {
+        const userRoles = rolesData?.filter(r => r.user_id === profile.id).map(r => r.role) || [];
+        return { ...profile, roles: userRoles };
+      });
+
+      setUsers(usersWithRoles);
+
+      // Calculate stats based on roles
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
+      const roleCount = (role: string) => 
+        usersWithRoles.filter(u => u.roles?.includes(role as any)).length;
+
       setStats({
-        totalUsers: data?.length || 0,
-        students: data?.filter((u) => u.role === "student").length || 0,
-        parents: data?.filter((u) => u.role === "parent").length || 0,
-        admins: data?.filter((u) => u.role === "admin").length || 0,
+        totalUsers: usersWithRoles.length,
+        students: roleCount("student"),
+        parents: roleCount("parent"),
+        admins: roleCount("admin"),
         newUsersThisWeek:
-          data?.filter((u) => new Date(u.created_at) > oneWeekAgo).length || 0,
-        activeUsers: data?.filter((u) => u.account_active).length || 0,
+          usersWithRoles.filter((u) => new Date(u.created_at || "") > oneWeekAgo).length,
+        activeUsers: usersWithRoles.filter((u) => u.is_active).length,
       });
     } catch (error: any) {
       console.error("Error fetching users:", error);
@@ -96,16 +103,15 @@ export function useAdminUsers() {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ account_active: active })
+        .update({ is_active: active })
         .eq("id", userId);
 
       if (error) throw error;
 
-      await supabase.rpc("log_user_activity", {
-        p_user_id: user?.id,
-        p_action: active ? "user_activated" : "user_deactivated",
-        p_entity_type: "user",
-        p_entity_id: userId,
+      await supabase.rpc("log_activity", {
+        _user_id: user?.id,
+        _action: active ? "user_activated" : "user_deactivated",
+        _details: { target_user_id: userId },
       });
 
       await fetchUsers();
@@ -128,11 +134,10 @@ export function useAdminUsers() {
 
       if (error) throw error;
 
-      await supabase.rpc("log_user_activity", {
-        p_user_id: user?.id,
-        p_action: "user_deleted",
-        p_entity_type: "user",
-        p_entity_id: userId,
+      await supabase.rpc("log_activity", {
+        _user_id: user?.id,
+        _action: "user_deleted",
+        _details: { target_user_id: userId },
       });
 
       await fetchUsers();
@@ -165,8 +170,9 @@ export function useActivityLogs(limit: number = 50) {
         .from("activity_logs")
         .select(`
           *,
-          user:profiles!activity_logs_user_id_fkey(
-            full_name,
+          user:profiles(
+            first_name,
+            last_name,
             email
           )
         `)
