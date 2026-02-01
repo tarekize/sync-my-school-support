@@ -165,66 +165,8 @@ const Auth = () => {
 
         if (error) throw error;
 
-        // Enregistrer les consentements RGPD
-        setTimeout(async () => {
-          try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-
-            const consents = [
-              { user_id: session.user.id, consent_type: 'data_processing' },
-              { user_id: session.user.id, consent_type: 'terms_and_privacy' }
-            ];
-
-            // Ajouter le consentement parental si nécessaire
-            if (dateOfBirth) {
-              const age = new Date().getFullYear() - dateOfBirth.getFullYear();
-              if (age < 15 && consentParental) {
-                consents.push({ user_id: session.user.id, consent_type: 'parental_consent' });
-              }
-            }
-
-            await supabase.from('user_consents').insert(consents);
-          } catch (error) {
-            console.error('Erreur lors de l\'enregistrement des consentements:', error);
-          }
-        }, 1500);
-
-        // Si un code de parrainage existe, le stocker dans le profil
-        // La relation de parrainage sera créée lors du premier paiement
-        if (referralCode) {
-          setTimeout(async () => {
-            try {
-              const { data: { session } } = await supabase.auth.getSession();
-              if (!session) return;
-
-              // Vérifier que le code est valide
-              const { data: referralCodeData } = await supabase
-                .from('referral_codes')
-                .select('user_id, code')
-                .eq('code', referralCode)
-                .eq('is_active', true)
-                .single();
-
-              if (referralCodeData) {
-                // Stocker le code dans le profil pour activation lors du paiement
-                await supabase
-                  .from('profiles')
-                  .update({ pending_referral_code: referralCode })
-                  .eq('id', session.user.id);
-
-                // Nettoyer le sessionStorage
-                sessionStorage.removeItem('referralCode');
-                
-                toast.success("Code de parrainage enregistré ! Vous bénéficierez d'une réduction de 5% lors de votre premier paiement d'un abonnement annuel.", {
-                  duration: 6000,
-                });
-              }
-            } catch (error) {
-              console.error('Erreur lors de l\'enregistrement du code de parrainage:', error);
-            }
-          }, 2000);
-        }
+        // TODO: Implement GDPR consent logging when user_consents table exists
+        // TODO: Implement referral code system when referral_codes table exists
 
         toast.success("Compte créé avec succès ! Veuillez vérifier votre boîte email et cliquer sur le lien de confirmation pour activer votre compte.", {
           duration: 8000,
@@ -722,7 +664,7 @@ const Auth = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => handleSocialAuth("google")}
+                      onClick={handleGoogleAuth}
                       disabled={loading}
                       className="w-full justify-start"
                     >
@@ -745,32 +687,6 @@ const Auth = () => {
                         />
                       </svg>
                       Se connecter avec Google
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => handleSocialAuth("facebook")}
-                      disabled={loading}
-                      className="w-full justify-start"
-                    >
-                      <svg className="h-5 w-5 mr-2" fill="#1877F2" viewBox="0 0 24 24">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                      </svg>
-                      Se connecter avec Facebook
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => handleSocialAuth("apple")}
-                      disabled={loading}
-                      className="w-full justify-start"
-                    >
-                      <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                      </svg>
-                      Se connecter avec Apple
                     </Button>
                   </div>
 

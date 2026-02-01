@@ -2,21 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { Tables } from "@/integrations/supabase/types";
 
-export interface Profile {
-  id: string;
-  email: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  full_name: string | null;
-  avatar_url: string | null;
-  phone: string | null;
-  date_of_birth: string | null;
-  school_level: string | null;
-  role: "student" | "parent" | "admin" | "teacher" | "editeur" | "reviseur" | null;
-  account_active: boolean | null;
-  created_at: string;
-  updated_at: string;
+// Use the database type directly
+type ProfileRow = Tables<"profiles">;
+
+export interface Profile extends ProfileRow {
+  // Any additional computed fields can go here
 }
 
 export interface LinkedChild {
@@ -28,7 +20,6 @@ export interface LinkedChild {
     id: string;
     first_name: string | null;
     last_name: string | null;
-    full_name: string | null;
     email: string | null;
     school_level: string | null;
     avatar_url: string | null;
@@ -44,7 +35,6 @@ export interface LinkedParent {
     id: string;
     first_name: string | null;
     last_name: string | null;
-    full_name: string | null;
     email: string | null;
   };
 }
@@ -88,26 +78,21 @@ export function useProfile() {
 
     setSaving(true);
     try {
-      // Build update object with proper typing
-      const updateData: Record<string, unknown> = {
-        ...updates,
-        updated_at: new Date().toISOString(),
-      };
-
       const { error } = await supabase
         .from("profiles")
-        .update(updateData)
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", user.id);
 
       if (error) throw error;
 
-      // Log activity
-      await supabase.rpc("log_user_activity", {
-        p_user_id: user.id,
-        p_action: "profile_updated",
-        p_entity_type: "profile",
-        p_entity_id: user.id,
-        p_details: { updated_fields: Object.keys(updates) },
+      // Log activity using existing function
+      await supabase.rpc("log_activity", {
+        _user_id: user.id,
+        _action: "profile_updated",
+        _details: { updated_fields: Object.keys(updates) },
       });
 
       setProfile((prev) => (prev ? { ...prev, ...updates, updated_at: new Date().toISOString() } : null));
@@ -130,12 +115,12 @@ export function useProfile() {
       const fileName = `${user.id}/avatar.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("medias")
+        .from("avatars")
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage.from("medias").getPublicUrl(fileName);
+      const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
 
       await updateProfile({ avatar_url: data.publicUrl });
       return data.publicUrl;
@@ -170,17 +155,16 @@ export function useLinkedChildren() {
 
     try {
       const { data, error } = await supabase
-        .from("parent_children")
+        .from("parent_child_links")
         .select(`
           id,
           child_id,
           status,
           created_at,
-          child:profiles!parent_children_child_id_fkey(
+          child:profiles!parent_child_links_child_id_fkey(
             id,
             first_name,
             last_name,
-            full_name,
             email,
             school_level,
             avatar_url
@@ -201,44 +185,39 @@ export function useLinkedChildren() {
     fetchChildren();
   }, [fetchChildren]);
 
-  const addChildByEmail = async (email: string): Promise<{ success: boolean; message: string }> => {
-    if (!user) return { success: false, message: "Non authentifié" };
-
-    try {
-      const { data, error } = await supabase.rpc("create_parent_child_request", {
-        p_parent_id: user.id,
-        p_child_email: email,
-      });
-
-      if (error) throw error;
-
-      const result = data as { success: boolean; message: string };
-      if (result.success) {
-        await fetchChildren();
-      }
-      return result;
-    } catch (error: any) {
-      console.error("Error adding child:", error);
-      return { success: false, message: error.message };
-    }
-  };
-
   const addChildByCode = async (code: string): Promise<{ success: boolean; message: string }> => {
     if (!user) return { success: false, message: "Non authentifié" };
 
     try {
-      const { data, error } = await supabase.rpc("create_parent_child_request", {
-        p_parent_id: user.id,
-        p_linking_code: code.toUpperCase(),
-      });
+      // Find child by linking code
+      const { data: childProfile, error: findError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("linking_code", code.toUpperCase())
+        .single();
 
-      if (error) throw error;
-
-      const result = data as { success: boolean; message: string };
-      if (result.success) {
-        await fetchChildren();
+      if (findError || !childProfile) {
+        return { success: false, message: "Code de liaison invalide" };
       }
-      return result;
+
+      // Create parent-child link
+      const { error: insertError } = await supabase
+        .from("parent_child_links")
+        .insert({
+          parent_id: user.id,
+          child_id: childProfile.id,
+          status: "pending",
+        });
+
+      if (insertError) {
+        if (insertError.code === "23505") {
+          return { success: false, message: "Ce lien existe déjà" };
+        }
+        throw insertError;
+      }
+
+      await fetchChildren();
+      return { success: true, message: "Demande de liaison envoyée" };
     } catch (error: any) {
       console.error("Error adding child by code:", error);
       return { success: false, message: error.message };
@@ -248,7 +227,7 @@ export function useLinkedChildren() {
   const removeChild = async (linkId: string) => {
     try {
       const { error } = await supabase
-        .from("parent_children")
+        .from("parent_child_links")
         .delete()
         .eq("id", linkId);
 
@@ -267,7 +246,6 @@ export function useLinkedChildren() {
   return {
     children,
     loading,
-    addChildByEmail,
     addChildByCode,
     removeChild,
     refetch: fetchChildren,
@@ -289,17 +267,16 @@ export function useLinkedParents() {
 
     try {
       const { data, error } = await supabase
-        .from("parent_children")
+        .from("parent_child_links")
         .select(`
           id,
           parent_id,
           status,
           created_at,
-          parent:profiles!parent_children_parent_id_fkey(
+          parent:profiles!parent_child_links_parent_id_fkey(
             id,
             first_name,
             last_name,
-            full_name,
             email
           )
         `)
@@ -307,6 +284,17 @@ export function useLinkedParents() {
 
       if (error) throw error;
       setParents((data as any[]) || []);
+
+      // Also fetch the user's linking code
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("linking_code")
+        .eq("id", user.id)
+        .single();
+
+      if (profileData?.linking_code) {
+        setLinkingCode(profileData.linking_code);
+      }
     } catch (error: any) {
       console.error("Error fetching parents:", error);
     } finally {
@@ -318,41 +306,19 @@ export function useLinkedParents() {
     fetchParents();
   }, [fetchParents]);
 
-  const generateLinkingCode = async () => {
-    if (!user) return null;
-
-    try {
-      const { data: code, error: codeError } = await supabase.rpc("generate_linking_code");
-      if (codeError) throw codeError;
-
-      const { error } = await supabase.from("linking_codes").insert({
-        child_id: user.id,
-        code: code,
-      });
-
-      if (error) throw error;
-
-      setLinkingCode(code);
-      return code;
-    } catch (error: any) {
-      console.error("Error generating code:", error);
-      toast.error("Erreur lors de la génération du code");
-      return null;
-    }
-  };
-
   const respondToRequest = async (requestId: string, accept: boolean) => {
     try {
-      const { data, error } = await supabase.rpc("respond_to_link_request", {
-        p_request_id: requestId,
-        p_accept: accept,
-      });
+      const { error } = await supabase
+        .from("parent_child_links")
+        .update({ status: accept ? "active" : "rejected" })
+        .eq("id", requestId)
+        .eq("child_id", user?.id);
 
       if (error) throw error;
       
       await fetchParents();
       toast.success(accept ? "Lien accepté" : "Demande refusée");
-      return data;
+      return { success: true };
     } catch (error: any) {
       console.error("Error responding to request:", error);
       toast.error("Erreur lors de la réponse");
@@ -363,7 +329,7 @@ export function useLinkedParents() {
   const removeParent = async (linkId: string) => {
     try {
       const { error } = await supabase
-        .from("parent_children")
+        .from("parent_child_links")
         .delete()
         .eq("id", linkId);
 
@@ -383,7 +349,6 @@ export function useLinkedParents() {
     parents,
     linkingCode,
     loading,
-    generateLinkingCode,
     respondToRequest,
     removeParent,
     refetch: fetchParents,
