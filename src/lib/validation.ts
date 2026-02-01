@@ -109,20 +109,13 @@ export function validatePassword(password: string): { valid: boolean; errors: st
   };
 }
 
-// School levels configuration
+// School levels configuration - values match the database enum
 export const schoolLevels = {
-  primaire: [
-    { value: "cp", label: "CP" },
-    { value: "ce1", label: "CE1" },
-    { value: "ce2", label: "CE2" },
-    { value: "cm1", label: "CM1" },
-    { value: "cm2", label: "CM2" },
-  ],
   college: [
-    { value: "sixieme", label: "6ème" },
-    { value: "cinquieme", label: "5ème" },
-    { value: "quatrieme", label: "4ème" },
-    { value: "troisieme", label: "3ème" },
+    { value: "6eme", label: "6ème" },
+    { value: "5eme", label: "5ème" },
+    { value: "4eme", label: "4ème" },
+    { value: "3eme", label: "3ème" },
   ],
   lycee: [
     { value: "seconde", label: "Seconde" },
@@ -132,7 +125,6 @@ export const schoolLevels = {
 };
 
 export const allSchoolLevels = [
-  ...schoolLevels.primaire,
   ...schoolLevels.college,
   ...schoolLevels.lycee,
 ];
@@ -143,7 +135,6 @@ export function getSchoolLevelLabel(value: string): string {
 }
 
 export function getSchoolCategory(value: string): string {
-  if (schoolLevels.primaire.some((l) => l.value === value)) return "Primaire";
   if (schoolLevels.college.some((l) => l.value === value)) return "Collège";
   if (schoolLevels.lycee.some((l) => l.value === value)) return "Lycée";
   return "";

@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, GraduationCap, LogOut, User as UserIcon, CalendarIcon } from "lucide-react";
+import { ArrowLeft, GraduationCap, LogOut, User as UserIcon, CalendarIcon, Copy, Check } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -55,6 +55,7 @@ interface Profile {
   phone: string | null;
   school_level: string | null;
   avatar_url: string | null;
+  linking_code: string | null;
 }
 
 const MesInformations = () => {
@@ -65,6 +66,7 @@ const MesInformations = () => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -100,7 +102,7 @@ const MesInformations = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, email, phone, school_level, avatar_url")
+        .select("id, first_name, last_name, email, phone, school_level, avatar_url, linking_code")
         .eq("id", userId)
         .single();
 
@@ -386,6 +388,39 @@ const MesInformations = () => {
                     <option value="terminale">Terminale</option>
                   </select>
                 </div>
+
+                {/* Code de liaison pour les élèves */}
+                {userRole === 'student' && profile?.linking_code && (
+                  <div className="space-y-2 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                    <Label className="text-primary font-semibold">Code de liaison parent</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={profile.linking_code.toUpperCase()}
+                        readOnly
+                        className="bg-background font-mono text-lg tracking-widest"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          navigator.clipboard.writeText(profile.linking_code!);
+                          setCodeCopied(true);
+                          toast({
+                            title: "Copié !",
+                            description: "Le code a été copié dans le presse-papiers",
+                          });
+                          setTimeout(() => setCodeCopied(false), 2000);
+                        }}
+                      >
+                        {codeCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Partagez ce code avec vos parents pour qu'ils puissent lier leur compte au vôtre.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-between items-center pt-4 border-t">
