@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ChapterMathQuiz } from "@/components/course/ChapterMathQuiz";
 import { ChapterMathExercises } from "@/components/course/ChapterMathExercises";
-import { getChapterContent, mathSecondeChapters } from "@/data/mathSecondeChapters";
+import { mathSecondeChapters, getChapterContent, ChapterContent } from "@/data/mathSecondeChapters";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +56,7 @@ const Cours = () => {
   const [schoolLevel, setSchoolLevel] = useState<string>("");
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [activeChapter, setActiveChapter] = useState<Chapter | null>(null);
+  const [activeChapterIndex, setActiveChapterIndex] = useState<number>(0);
   const [progress, setProgress] = useState<Record<string, boolean>>({});
   const [viewMode, setViewMode] = useState<"grid" | "content">("grid");
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -93,17 +94,17 @@ const Cours = () => {
       // Use local static chapters for math seconde
       if (subjectId === "math" && profileData?.school_level === "seconde") {
         const staticChapters: Chapter[] = mathSecondeChapters.map((ch, index) => {
-          const chapterContent = getChapterContent(ch.id);
           return {
-            id: ch.id,
-            title: ch.title,
+            id: ch.chapterId,
+            title: ch.chapterTitle,
             order_index: index,
-            content: chapterContent?.content || "",
+            content: `<h2>${ch.chapterTitle}</h2><p>Ce chapitre contient ${ch.quizzes.length} questions de quiz et ${ch.exercises.length} exercices.</p>`,
           };
         });
         setChapters(staticChapters);
         if (staticChapters.length > 0) {
           setActiveChapter(staticChapters[0]);
+          setActiveChapterIndex(0);
         }
       } else {
         setChapters([]);
@@ -141,8 +142,10 @@ const Cours = () => {
     const currentIndex = chapters.findIndex((c) => c.id === activeChapter.id);
     if (direction === "prev" && currentIndex > 0) {
       setActiveChapter(chapters[currentIndex - 1]);
+      setActiveChapterIndex(currentIndex - 1);
     } else if (direction === "next" && currentIndex < chapters.length - 1) {
       setActiveChapter(chapters[currentIndex + 1]);
+      setActiveChapterIndex(currentIndex + 1);
     }
   };
 
@@ -226,7 +229,7 @@ const Cours = () => {
   }
 
   const fullName = getFullName(profile);
-  const chapterContent = activeChapter ? getChapterContent(activeChapter.id) : null;
+  const chapterContent = getChapterContent(activeChapterIndex);
 
   return (
     <div className="min-h-screen bg-background">
@@ -311,16 +314,16 @@ const Cours = () => {
         </div>
 
         {/* Active activity view */}
-        {activeActivity === "quiz" && activeChapter && chapterContent?.quiz && (
+        {activeActivity === "quiz" && activeChapter && chapterContent && (
           <ChapterMathQuiz
-            questions={chapterContent.quiz}
+            questions={chapterContent.quizzes}
             chapterTitle={activeChapter.title}
             chapterId={activeChapter.id}
             onClose={() => setActiveActivity(null)}
           />
         )}
 
-        {activeActivity === "exercises" && activeChapter && chapterContent?.exercises && (
+        {activeActivity === "exercises" && activeChapter && chapterContent && (
           <ChapterMathExercises
             exercises={chapterContent.exercises}
             chapterTitle={activeChapter.title}
@@ -340,6 +343,7 @@ const Cours = () => {
                 }`}
                 onClick={() => {
                   setActiveChapter(chapter);
+                  setActiveChapterIndex(index);
                   setViewMode("content");
                 }}
               >
@@ -479,18 +483,21 @@ const Cours = () => {
         )}
       </main>
 
-      {/* Chat toggle button */}
-      <Button
-        className="fixed bottom-6 right-6 rounded-full h-14 w-14 shadow-lg"
+      {/* Floating Chat Button */}
+      <button
         onClick={() => setIsChatOpen(!isChatOpen)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors z-50"
       >
         {isChatOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
-      </Button>
+      </button>
 
-      {/* Chat panel */}
+      {/* Chat Panel */}
       {isChatOpen && (
-        <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-background border rounded-lg shadow-xl z-50 overflow-hidden">
-          <ChatBot messages={chatMessages} setMessages={setChatMessages} />
+        <div className="fixed bottom-24 right-6 w-96 h-[500px] z-50">
+          <ChatBot 
+            messages={chatMessages}
+            setMessages={setChatMessages}
+          />
         </div>
       )}
     </div>

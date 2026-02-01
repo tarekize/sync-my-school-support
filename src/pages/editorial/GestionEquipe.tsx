@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, UserPlus, Trash2, Shield } from "lucide-react";
+import { ArrowLeft, Trash2, Shield } from "lucide-react";
 import { toast } from "sonner";
 import {
   Select,
@@ -35,9 +35,10 @@ import {
 
 interface TeamMember {
   id: string;
-  email: string | null;
-  full_name: string | null;
-  account_active: boolean | null;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  is_active: boolean | null;
   roles: string[];
 }
 
@@ -80,7 +81,7 @@ export default function GestionEquipe() {
     try {
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, email, first_name, last_name, is_active')
         .order('email');
 
       if (profilesError) throw profilesError;
@@ -107,6 +108,11 @@ export default function GestionEquipe() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getFullName = (member: TeamMember) => {
+    const parts = [member.first_name, member.last_name].filter(Boolean);
+    return parts.length > 0 ? parts.join(" ") : "Sans nom";
   };
 
   const updateRole = async (userId: string, role: string, action: 'add' | 'remove') => {
@@ -140,7 +146,7 @@ export default function GestionEquipe() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ account_active: !currentStatus })
+        .update({ is_active: !currentStatus })
         .eq('id', userId);
 
       if (error) throw error;
@@ -182,10 +188,10 @@ export default function GestionEquipe() {
   };
 
   const getRoleBadge = (role: string) => {
-    const variants: { [key: string]: string } = {
+    const variants: Record<string, string> = {
       'admin': 'bg-red-100 text-red-800 border-red-300',
-      'editeur': 'bg-blue-100 text-blue-800 border-blue-300',
-      'reviseur': 'bg-green-100 text-green-800 border-green-300'
+      'parent': 'bg-blue-100 text-blue-800 border-blue-300',
+      'student': 'bg-green-100 text-green-800 border-green-300'
     };
 
     return (
@@ -197,7 +203,7 @@ export default function GestionEquipe() {
 
   const filteredTeam = team.filter(member => 
     member.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    getFullName(member).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (loading) {
@@ -228,16 +234,16 @@ export default function GestionEquipe() {
             <div>
               <h1 className="text-3xl font-bold flex items-center gap-2">
                 <Shield className="w-8 h-8" />
-                Gestion de l'équipe éditoriale
+                Gestion de l'équipe
               </h1>
               <p className="text-muted-foreground mt-1">
-                Gérez les membres de l'équipe et leurs rôles
+                Gérez les membres et leurs rôles
               </p>
             </div>
           </div>
         </div>
 
-        {/* Search and filters */}
+        {/* Search */}
         <Card className="p-4 mb-6">
           <div className="flex items-center gap-4">
             <Input
@@ -268,7 +274,7 @@ export default function GestionEquipe() {
               {filteredTeam.map((member) => (
                 <TableRow key={member.id}>
                   <TableCell className="font-medium">
-                    {member.full_name || 'Sans nom'}
+                    {getFullName(member)}
                   </TableCell>
                   <TableCell>{member.email}</TableCell>
                   <TableCell>
@@ -296,15 +302,15 @@ export default function GestionEquipe() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="editeur">Éditeur</SelectItem>
-                          <SelectItem value="reviseur">Réviseur</SelectItem>
+                          <SelectItem value="parent">Parent</SelectItem>
+                          <SelectItem value="student">Élève</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={member.account_active ? "default" : "secondary"}>
-                      {member.account_active ? "Actif" : "Inactif"}
+                    <Badge variant={member.is_active ? "default" : "secondary"}>
+                      {member.is_active ? "Actif" : "Inactif"}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -312,9 +318,9 @@ export default function GestionEquipe() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => toggleUserStatus(member.id, member.account_active)}
+                        onClick={() => toggleUserStatus(member.id, member.is_active)}
                       >
-                        {member.account_active ? "Désactiver" : "Activer"}
+                        {member.is_active ? "Désactiver" : "Activer"}
                       </Button>
                       <Button
                         variant="destructive"
@@ -346,7 +352,7 @@ export default function GestionEquipe() {
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
               <AlertDialogDescription>
-                Êtes-vous sûr de vouloir supprimer {selectedMember?.full_name} ?
+                Êtes-vous sûr de vouloir supprimer {selectedMember ? getFullName(selectedMember) : ''} ?
                 Cette action est irréversible.
               </AlertDialogDescription>
             </AlertDialogHeader>
