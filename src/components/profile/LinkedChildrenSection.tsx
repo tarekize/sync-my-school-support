@@ -30,7 +30,8 @@ import { getSchoolLevelLabel } from "@/lib/validation";
 import { toast } from "sonner";
 
 // Helper to get full name from child profile
-const getChildFullName = (child: LinkedChild['child']): string => {
+const getChildFullName = (child: LinkedChild["child"]): string => {
+  if (!child) return "Compte élève";
   const parts = [child.first_name, child.last_name].filter(Boolean);
   return parts.length > 0 ? parts.join(" ") : "Sans nom";
 };
@@ -200,8 +201,12 @@ function ChildCard({
               {link.status === "active" ? "Actif" : "En attente"}
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground">{child.email}</p>
-          {child.school_level && (
+          {child?.email ? (
+            <p className="text-sm text-muted-foreground">{child.email}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">Informations indisponibles</p>
+          )}
+          {child?.school_level && (
             <p className="text-sm text-primary">
               {getSchoolLevelLabel(child.school_level)}
             </p>

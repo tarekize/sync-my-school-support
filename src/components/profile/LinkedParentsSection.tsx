@@ -27,7 +27,8 @@ import { useLinkedParents, LinkedParent } from "@/hooks/useProfile";
 import { toast } from "sonner";
 
 // Helper to get full name from parent profile
-const getParentFullName = (parent: LinkedParent['parent']): string => {
+const getParentFullName = (parent: LinkedParent["parent"]): string => {
+  if (!parent) return "Compte parent";
   const parts = [parent.first_name, parent.last_name].filter(Boolean);
   return parts.length > 0 ? parts.join(" ") : "Sans nom";
 };
@@ -221,7 +222,11 @@ function PendingRequestCard({
 
         <div>
           <h4 className="font-medium">{fullName}</h4>
-          <p className="text-sm text-muted-foreground">{parent.email}</p>
+          {parent?.email ? (
+            <p className="text-sm text-muted-foreground">{parent.email}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">Informations indisponibles</p>
+          )}
         </div>
       </div>
 
@@ -269,7 +274,11 @@ function ParentCard({
             <h4 className="font-medium">{fullName}</h4>
             <Badge variant="default">Parent</Badge>
           </div>
-          <p className="text-sm text-muted-foreground">{parent.email}</p>
+          {parent?.email ? (
+            <p className="text-sm text-muted-foreground">{parent.email}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">Informations indisponibles</p>
+          )}
         </div>
       </div>
 
