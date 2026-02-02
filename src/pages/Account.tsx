@@ -7,7 +7,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserCircle, CreditCard, FileText, Gift, Users, BarChart3, ArrowLeft, GraduationCap, LogOut, User as UserIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PrepaidCodeDialog } from "@/components/PrepaidCodeDialog";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
@@ -22,6 +21,7 @@ import {
   BreadcrumbLink,
   BreadcrumbList,
 } from "@/components/ui/breadcrumb";
+import { ChangePasswordButton } from "@/components/ChangePasswordButton";
 
 interface Profile {
   id: string;
@@ -186,8 +186,10 @@ const Account = () => {
               <span className="text-xl font-bold">AcadémiePlus</span>
             </div>
 
-            {/* Right Side: User Menu */}
-            <div className="flex items-center gap-4">
+            {/* Right Side: Change Password + User Menu */}
+            <div className="flex items-center gap-3">
+              <ChangePasswordButton />
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div className="flex items-center gap-2 cursor-pointer hover:bg-accent/10 rounded-lg p-2 transition-colors">
