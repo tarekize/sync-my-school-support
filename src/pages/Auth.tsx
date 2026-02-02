@@ -90,6 +90,8 @@ const Auth = () => {
           setTimeout(() => {
             if (roleData?.role === 'parent') {
               navigate("/parent-dashboard");
+            } else if (roleData?.role === 'admin') {
+              navigate("/dashboard");
             } else {
               navigate("/liste-cours");
             }
@@ -112,6 +114,8 @@ const Auth = () => {
 
         if (roleData?.role === 'parent') {
           navigate("/parent-dashboard");
+        } else if (roleData?.role === 'admin') {
+          navigate("/dashboard");
         } else {
           navigate("/liste-cours");
         }
