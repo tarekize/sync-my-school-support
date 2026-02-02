@@ -41,6 +41,7 @@ import {
 import { LinkedChildrenSection } from "@/components/profile/LinkedChildrenSection";
 import { LinkedParentsSection } from "@/components/profile/LinkedParentsSection";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
+import TwoFactorSettings from "@/components/TwoFactorSettings";
 
 const profileSchema = z.object({
   first_name: z.string().trim().min(1, "Le prénom est requis").max(100, "Le prénom ne peut pas dépasser 100 caractères"),
@@ -443,7 +444,7 @@ const MesInformations = () => {
                           setTimeout(() => setCodeCopied(false), 2000);
                         }}
                       >
-                        {codeCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                        {codeCopied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
                       </Button>
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -483,6 +484,9 @@ const MesInformations = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Section 2FA */}
+          <TwoFactorSettings />
 
           {/* Section Parent/Enfant selon le rôle */}
           {userRole === 'parent' && <LinkedChildrenSection />}

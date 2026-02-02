@@ -39,6 +39,7 @@ import GestionEquipe from "./pages/editorial/GestionEquipe";
 import CompareVersions from "./pages/editorial/CompareVersions";
 import Analytics from "./pages/Analytics";
 import FAQAdmin from "./pages/FAQAdmin";
+import CompleteProfile from "./pages/CompleteProfile";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="/editorial/equipe" element={<GestionEquipe />} />
               <Route path="/editorial/historique/:id" element={<HistoriqueVersions />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/complete-profile" element={<CompleteProfile />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/parent-dashboard" element={<ParentDashboard />} />
               <Route path="/account" element={
