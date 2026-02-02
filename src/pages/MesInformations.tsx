@@ -83,12 +83,12 @@ const MesInformations = () => {
 
   useEffect(() => {
     if (authLoading) return;
-    
+
     if (!user) {
       navigate("/auth");
       return;
     }
-    
+
     fetchProfile(user.id);
 
     const determineUserRole = async () => {
@@ -150,14 +150,16 @@ const MesInformations = () => {
       });
 
       if (!profile?.id || !user) return;
-      
+
       // Update email if it has changed
       if (validatedData.email !== profile.email) {
-        const { error: authError } = await supabase.auth.updateUser({ email: validatedData.email });
-        if (authError) throw authError;
+        const { error: emailError } = await supabase.functions.invoke("update-user-email", {
+          body: { userId: profile.id, newEmail: validatedData.email },
+        });
+        if (emailError) throw emailError;
         toast({
           title: "Email mis à jour",
-          description: "Un email de confirmation a été envoyé à votre nouvelle adresse.",
+          description: "Votre email a été mis à jour avec succès.",
         });
       }
 
@@ -262,8 +264,8 @@ const MesInformations = () => {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <div 
-              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity" 
+            <div
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate("/liste-cours")}
             >
               <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
@@ -333,6 +335,7 @@ const MesInformations = () => {
               <AvatarUpload
                 url={formData.avatar_url}
                 onUpload={(url) => setFormData({ ...formData, avatar_url: url })}
+                onDelete={() => setFormData({ ...formData, avatar_url: null })}
               />
               <div className="grid gap-4">
                 <div className="space-y-2">
