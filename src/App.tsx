@@ -39,6 +39,7 @@ import GestionEquipe from "./pages/editorial/GestionEquipe";
 import CompareVersions from "./pages/editorial/CompareVersions";
 import Analytics from "./pages/Analytics";
 import FAQAdmin from "./pages/FAQAdmin";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +80,11 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/faq-admin" element={<FAQAdmin />} />
+              <Route path="/admin" element={
+                <ProtectedRoute requireAdmin>
+                  <Admin />
+                </ProtectedRoute>
+              } />
               <Route path="/mentions-legales" element={<MentionsLegales />} />
               <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -33,13 +33,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   ArrowLeft,
   Users,
   GraduationCap,
@@ -55,6 +48,7 @@ import {
   Loader2,
   Activity,
   TrendingUp,
+  LayoutDashboard,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -79,19 +73,31 @@ export default function Admin() {
   const { users, stats, loading, toggleUserStatus, deleteUser } = useAdminUsers();
   const { logs, loading: logsLoading } = useActivityLogs(100);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [searchQueryParents, setSearchQueryParents] = useState("");
+  const [searchQueryStudents, setSearchQueryStudents] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
 
-  const filteredUsers = users.filter((user) => {
+  // Separate users by role
+  const parents = users.filter((user) => getPrimaryRole(user) === "parent");
+  const students = users.filter((user) => getPrimaryRole(user) === "student");
+
+  // Filter parents
+  const filteredParents = parents.filter((user) => {
     const fullName = getFullName(user);
-    const matchesSearch =
-      fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchQuery.toLowerCase());
-    const primaryRole = getPrimaryRole(user);
-    const matchesRole = roleFilter === "all" || primaryRole === roleFilter;
-    return matchesSearch && matchesRole;
+    return (
+      fullName.toLowerCase().includes(searchQueryParents.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchQueryParents.toLowerCase())
+    );
+  });
+
+  // Filter students
+  const filteredStudents = students.filter((user) => {
+    const fullName = getFullName(user);
+    return (
+      fullName.toLowerCase().includes(searchQueryStudents.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchQueryStudents.toLowerCase())
+    );
   });
 
   const handleDeleteUser = async () => {
@@ -104,129 +110,258 @@ export default function Admin() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Chargement du tableau de bord...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
-                onClick={() => navigate(-1)}
+                onClick={() => navigate("/")}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Retour
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10">
                   <Shield className="h-6 w-6 text-primary" />
-                  Administration
-                </h1>
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">Administration</h1>
+                  <p className="text-sm text-muted-foreground">Tableau de bord administrateur</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Total utilisateurs"
             value={stats.totalUsers}
             icon={Users}
-            color="text-primary"
+            gradient="from-primary/20 to-primary/5"
+            iconColor="text-primary"
           />
           <StatCard
             title="Élèves"
             value={stats.students}
             icon={GraduationCap}
-            color="text-blue-500"
+            gradient="from-blue-500/20 to-blue-500/5"
+            iconColor="text-blue-500"
           />
           <StatCard
             title="Parents"
             value={stats.parents}
             icon={User}
-            color="text-green-500"
+            gradient="from-green-500/20 to-green-500/5"
+            iconColor="text-green-500"
           />
           <StatCard
             title="Nouveaux (7j)"
             value={stats.newUsersThisWeek}
             icon={TrendingUp}
-            color="text-orange-500"
+            gradient="from-orange-500/20 to-orange-500/5"
+            iconColor="text-orange-500"
           />
         </div>
 
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Utilisateurs
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList className="bg-muted/50 p-1">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-background">
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
             </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2">
+            <TabsTrigger value="parents" className="flex items-center gap-2 data-[state=active]:bg-background">
+              <User className="h-4 w-4" />
+              Parents ({parents.length})
+            </TabsTrigger>
+            <TabsTrigger value="students" className="flex items-center gap-2 data-[state=active]:bg-background">
+              <GraduationCap className="h-4 w-4" />
+              Élèves ({students.length})
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="flex items-center gap-2 data-[state=active]:bg-background">
               <Activity className="h-4 w-4" />
               Activité
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <CardTitle>Gestion des utilisateurs</CardTitle>
-                    <CardDescription>
-                      {filteredUsers.length} utilisateur(s) affiché(s)
-                    </CardDescription>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Rechercher..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 w-full sm:w-64"
-                      />
+          {/* Dashboard Tab */}
+          <TabsContent value="dashboard" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Parents */}
+              <Card className="border-0 shadow-lg">
+                <CardHeader className="border-b bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-green-500/10">
+                        <User className="h-5 w-5 text-green-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">Parents récents</CardTitle>
+                        <CardDescription>Les 5 derniers inscrits</CardDescription>
+                      </div>
                     </div>
-                    <Select value={roleFilter} onValueChange={setRoleFilter}>
-                      <SelectTrigger className="w-full sm:w-40">
-                        <SelectValue placeholder="Filtrer par rôle" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tous les rôles</SelectItem>
-                        <SelectItem value="student">Élèves</SelectItem>
-                        <SelectItem value="parent">Parents</SelectItem>
-                        <SelectItem value="admin">Admins</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Badge variant="secondary">{parents.length} total</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="divide-y">
+                    {parents.slice(0, 5).map((user) => (
+                      <UserCompactRow key={user.id} user={user} />
+                    ))}
+                    {parents.length === 0 && (
+                      <p className="text-center text-muted-foreground py-8">
+                        Aucun parent inscrit
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recent Students */}
+              <Card className="border-0 shadow-lg">
+                <CardHeader className="border-b bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-500/10">
+                        <GraduationCap className="h-5 w-5 text-blue-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">Élèves récents</CardTitle>
+                        <CardDescription>Les 5 derniers inscrits</CardDescription>
+                      </div>
+                    </div>
+                    <Badge variant="secondary">{students.length} total</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="divide-y">
+                    {students.slice(0, 5).map((user) => (
+                      <UserCompactRow key={user.id} user={user} showLevel />
+                    ))}
+                    {students.length === 0 && (
+                      <p className="text-center text-muted-foreground py-8">
+                        Aucun élève inscrit
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Activity */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="border-b bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Activity className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Activité récente</CardTitle>
+                    <CardDescription>Dernières actions sur la plateforme</CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
+                {logsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : logs.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    Aucune activité récente
+                  </p>
+                ) : (
+                  <div className="divide-y">
+                    {logs.slice(0, 5).map((log) => {
+                      const userName = log.user
+                        ? [log.user.first_name, log.user.last_name].filter(Boolean).join(" ") || log.user.email
+                        : "Système";
+                      return (
+                        <div
+                          key={log.id}
+                          className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="p-2 rounded-full bg-muted">
+                            <Activity className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{log.action}</p>
+                            <p className="text-sm text-muted-foreground truncate">
+                              Par {userName}
+                            </p>
+                          </div>
+                          <span className="text-sm text-muted-foreground whitespace-nowrap">
+                            {log.created_at && format(new Date(log.created_at), "dd MMM HH:mm", {
+                              locale: fr,
+                            })}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Parents Tab */}
+          <TabsContent value="parents">
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="border-b bg-muted/30">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-500/10">
+                      <User className="h-5 w-5 text-green-500" />
+                    </div>
+                    <div>
+                      <CardTitle>Gestion des Parents</CardTitle>
+                      <CardDescription>
+                        {filteredParents.length} parent(s) affiché(s)
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Rechercher un parent..."
+                      value={searchQueryParents}
+                      onChange={(e) => setSearchQueryParents(e.target.value)}
+                      className="pl-9 w-full sm:w-64"
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Utilisateur</TableHead>
-                        <TableHead>Rôle</TableHead>
-                        <TableHead>Niveau</TableHead>
+                      <TableRow className="bg-muted/30">
+                        <TableHead>Parent</TableHead>
                         <TableHead>Statut</TableHead>
                         <TableHead>Inscription</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredUsers.map((user) => (
+                      {filteredParents.map((user) => (
                         <UserRow
                           key={user.id}
                           user={user}
@@ -239,6 +374,13 @@ export default function Admin() {
                           }}
                         />
                       ))}
+                      {filteredParents.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            Aucun parent trouvé
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </div>
@@ -246,13 +388,89 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
+          {/* Students Tab */}
+          <TabsContent value="students">
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="border-b bg-muted/30">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-500/10">
+                      <GraduationCap className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <CardTitle>Gestion des Élèves</CardTitle>
+                      <CardDescription>
+                        {filteredStudents.length} élève(s) affiché(s)
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Rechercher un élève..."
+                      value={searchQueryStudents}
+                      onChange={(e) => setSearchQueryStudents(e.target.value)}
+                      className="pl-9 w-full sm:w-64"
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <TableHead>Élève</TableHead>
+                        <TableHead>Niveau</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead>Inscription</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredStudents.map((user) => (
+                        <UserRow
+                          key={user.id}
+                          user={user}
+                          showLevel
+                          onToggleStatus={() =>
+                            toggleUserStatus(user.id, !user.is_active)
+                          }
+                          onDelete={() => {
+                            setUserToDelete(user);
+                            setDeleteDialogOpen(true);
+                          }}
+                        />
+                      ))}
+                      {filteredStudents.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            Aucun élève trouvé
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Activity Logs Tab */}
           <TabsContent value="logs">
-            <Card>
-              <CardHeader>
-                <CardTitle>Historique d'activité</CardTitle>
-                <CardDescription>
-                  Dernières actions sur les comptes utilisateurs
-                </CardDescription>
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="border-b bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Activity className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle>Historique d'activité</CardTitle>
+                    <CardDescription>
+                      Toutes les actions sur les comptes utilisateurs
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {logsLoading ? (
@@ -264,7 +482,7 @@ export default function Admin() {
                     Aucune activité récente
                   </p>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {logs.map((log) => {
                       const userName = log.user
                         ? [log.user.first_name, log.user.last_name].filter(Boolean).join(" ") || log.user.email
@@ -272,21 +490,23 @@ export default function Admin() {
                       return (
                         <div
                           key={log.id}
-                          className="flex items-start gap-4 p-4 rounded-lg border"
+                          className="flex items-start gap-4 p-4 rounded-xl border bg-card hover:bg-muted/30 transition-colors"
                         >
-                          <Activity className="h-5 w-5 text-muted-foreground mt-0.5" />
+                          <div className="p-2 rounded-full bg-muted">
+                            <Activity className="h-4 w-4 text-muted-foreground" />
+                          </div>
                           <div className="flex-1">
                             <p className="font-medium">{log.action}</p>
                             <p className="text-sm text-muted-foreground">
                               Par {userName}
                             </p>
                             {log.details && (
-                              <p className="text-sm text-muted-foreground mt-1">
+                              <p className="text-sm text-muted-foreground mt-1 font-mono text-xs bg-muted/50 p-2 rounded">
                                 {JSON.stringify(log.details)}
                               </p>
                             )}
                           </div>
-                          <span className="text-sm text-muted-foreground">
+                          <span className="text-sm text-muted-foreground whitespace-nowrap">
                             {log.created_at && format(new Date(log.created_at), "dd MMM HH:mm", {
                               locale: fr,
                             })}
@@ -332,34 +552,73 @@ function StatCard({
   title,
   value,
   icon: Icon,
-  color,
+  gradient,
+  iconColor,
 }: {
   title: string;
   value: number;
   icon: any;
-  color: string;
+  gradient: string;
+  iconColor: string;
 }) {
   return (
-    <Card>
-      <CardContent className="p-6">
+    <Card className="border-0 shadow-lg overflow-hidden">
+      <CardContent className={`p-6 bg-gradient-to-br ${gradient}`}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold">{value}</p>
+            <p className="text-sm text-muted-foreground font-medium">{title}</p>
+            <p className="text-4xl font-bold mt-1">{value}</p>
           </div>
-          <Icon className={`h-10 w-10 ${color} opacity-80`} />
+          <div className={`p-3 rounded-xl bg-background/80 shadow-sm`}>
+            <Icon className={`h-8 w-8 ${iconColor}`} />
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
 
+function UserCompactRow({ user, showLevel }: { user: AdminUser; showLevel?: boolean }) {
+  const fullName = getFullName(user);
+  const initials = fullName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  return (
+    <div className="flex items-center gap-3 p-4 hover:bg-muted/30 transition-colors">
+      <Avatar className="h-10 w-10">
+        <AvatarImage src={user.avatar_url || undefined} />
+        <AvatarFallback className="bg-primary/10 text-primary text-sm">
+          {initials || <User className="h-4 w-4" />}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium truncate">{fullName}</p>
+        <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+      </div>
+      {showLevel && user.school_level && (
+        <Badge variant="outline" className="text-xs">
+          {getSchoolLevelLabel(user.school_level)}
+        </Badge>
+      )}
+      <Badge variant={user.is_active ? "default" : "secondary"} className="text-xs">
+        {user.is_active ? "Actif" : "Inactif"}
+      </Badge>
+    </div>
+  );
+}
+
 function UserRow({
   user,
+  showLevel,
   onToggleStatus,
   onDelete,
 }: {
   user: AdminUser;
+  showLevel?: boolean;
   onToggleStatus: () => void;
   onDelete: () => void;
 }) {
@@ -371,22 +630,8 @@ function UserRow({
     .toUpperCase()
     .slice(0, 2);
 
-  const primaryRole = getPrimaryRole(user);
-
-  const roleLabels: Record<string, string> = {
-    student: "Élève",
-    parent: "Parent",
-    admin: "Admin",
-  };
-
-  const roleColors: Record<string, string> = {
-    student: "bg-blue-100 text-blue-700",
-    parent: "bg-green-100 text-green-700",
-    admin: "bg-purple-100 text-purple-700",
-  };
-
   return (
-    <TableRow>
+    <TableRow className="hover:bg-muted/30">
       <TableCell>
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
@@ -401,14 +646,15 @@ function UserRow({
           </div>
         </div>
       </TableCell>
-      <TableCell>
-        <Badge className={roleColors[primaryRole] || "bg-gray-100"}>
-          {roleLabels[primaryRole] || primaryRole}
-        </Badge>
-      </TableCell>
-      <TableCell>
-        {user.school_level ? getSchoolLevelLabel(user.school_level) : "—"}
-      </TableCell>
+      {showLevel && (
+        <TableCell>
+          {user.school_level ? (
+            <Badge variant="outline">{getSchoolLevelLabel(user.school_level)}</Badge>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </TableCell>
+      )}
       <TableCell>
         <Badge variant={user.is_active ? "default" : "secondary"}>
           {user.is_active ? "Actif" : "Inactif"}
