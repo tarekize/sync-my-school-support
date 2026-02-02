@@ -66,7 +66,7 @@ const Pricing = () => {
       period: "",
       description: `Paiement unique pour 10 mois jusqu'au ${getEndDate()}`,
       features: [
-        "Tous les cours de votre niveau",
+        "Tous les cours de mathématiques de votre niveau",
         "Exercices et corrigés",
         "Vidéos explicatives",
         "Suivi de progression",
@@ -82,7 +82,7 @@ const Pricing = () => {
       period: "",
       description: "Paiement mensuel",
       features: [
-        "Tous les cours de votre niveau",
+        "Tous les cours de mathématiques de votre niveau",
         "Exercices et corrigés",
         "Vidéos explicatives",
         "Suivi de progression",

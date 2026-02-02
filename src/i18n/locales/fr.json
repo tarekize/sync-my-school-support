@@ -8,10 +8,10 @@
     "freeTrial": "Inscrivez-vous"
   },
   "hero": {
-    "badge": "Plateforme d'apprentissage en ligne",
-    "title": "La plateforme qui booste vos résultats scolaires de la 6ème à la terminale",
-    "cta": "Commencer",
-    "programs": "Programmes officiels de l'éducation nationale algérienne"
+    "badge": "Soutien scolaire en mathématiques Via l'IA (Intelligence Artificielle)",
+    "title": "Maîtrisez les mathématiques, de la 5ème année à la terminale.",
+    "cta": "Découvrir les cours",
+    "programs": "Bientôt, toutes les autres matières seront disponibles."
   },
   "whyChooseUs": {
     "title": "Pourquoi nous choisir ?",
@@ -34,24 +34,18 @@
     }
   },
   "subjects": {
-    "title": "Toutes les matières de la 6ème à la Terminale",
+    "title": "Un programme de mathématiques complet",
     "features": {
       "downloadablePdf": "Cours téléchargeables en PDF",
       "examPrep": "Préparation au Brevet et au Bac",
       "exercises": "Cours, exercices & quiz corrigés, fiches, flashcards ..."
     },
     "math": "Mathématiques",
-    "physics": "Physique",
-    "french": "Français",
-    "arabic": "Arabe",
-    "history": "Histoire",
-    "chemistry": "Chimie",
-    "english": "Anglais",
-    "naturalSciences": "Sciences Naturelles",
-    "geography": "Géographie",
-    "philosophy": "Philosophie",
-    "islamicEducation": "Éducation Islamique",
-    "computerScience": "Informatique"
+    "algebra": "Algèbre",
+    "geometry": "Géométrie",
+    "trigonometry": "Trigonométrie",
+    "calculus": "Analyse",
+    "probability": "Probabilités & Statistiques"
   },
   "results": {
     "title": "Des résultats qui parlent",
@@ -102,7 +96,7 @@
       "title": "Contenu Validé",
       "description": "Des supports pédagogiques rigoureusement élaborés et testés"
     },
-    "cta": "Consulter nos programmes par matière"
+    "cta": "Consulter nos programmes de mathématiques"
   },
   "pricing": {
     "title": "Choisissez la formule qui vous convient",
@@ -164,7 +158,7 @@
       },
       "subjects": {
         "question": "Quelles matières sont disponibles ?",
-        "answer": "Nous couvrons toutes les matières principales : Mathématiques, Physique, Sciences Naturelles, Français, Arabe, Anglais, Histoire-Géographie, et plus encore. Les contenus suivent strictement les programmes officiels de l'éducation nationale algérienne."
+        "answer": "Actuellement, nous nous concentrons exclusivement sur les mathématiques pour tous les niveaux, de la 5ème année à la terminale. Nous prévoyons d'ajouter d'autres matières à l'avenir."
       },
       "freeTrial": {
         "question": "Puis-je essayer gratuitement avant de m'abonner ?",
@@ -172,7 +166,7 @@
       },
       "tracking": {
         "question": "Comment puis-je suivre ma progression ?",
-        "answer": "Chaque élève dispose d'un tableau de bord personnel qui affiche sa progression dans chaque matière, ses scores aux exercices, le temps passé sur la plateforme, et des recommandations personnalisées pour améliorer ses points faibles."
+        "answer": "Chaque élève dispose d'un tableau de bord personnel qui affiche sa progression en mathématiques, ses scores aux exercices, le temps passé sur la plateforme, et des recommandations personnalisées pour améliorer ses points faibles."
       },
       "support": {
         "question": "Y a-t-il un support en cas de questions ?",

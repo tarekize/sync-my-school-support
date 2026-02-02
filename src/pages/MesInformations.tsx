@@ -40,12 +40,15 @@ import {
 } from "@/components/ui/breadcrumb";
 import { LinkedChildrenSection } from "@/components/profile/LinkedChildrenSection";
 import { LinkedParentsSection } from "@/components/profile/LinkedParentsSection";
+import { AvatarUpload } from "@/components/profile/AvatarUpload";
 
 const profileSchema = z.object({
   first_name: z.string().trim().min(1, "Le prénom est requis").max(100, "Le prénom ne peut pas dépasser 100 caractères"),
   last_name: z.string().trim().min(1, "Le nom est requis").max(100, "Le nom ne peut pas dépasser 100 caractères"),
   phone: z.string().trim().max(20, "Le téléphone ne peut pas dépasser 20 caractères").optional().nullable(),
   school_level: z.string().optional().nullable(),
+  email: z.string().email("L'adresse email n'est pas valide"),
+  avatar_url: z.string().optional().nullable(),
 });
 
 interface Profile {
@@ -74,6 +77,8 @@ const MesInformations = () => {
     last_name: "",
     phone: "",
     school_level: "",
+    email: "",
+    avatar_url: "",
   });
 
   useEffect(() => {
@@ -111,6 +116,8 @@ const MesInformations = () => {
         last_name: data.last_name || "",
         phone: data.phone || "",
         school_level: data.school_level || "",
+        email: data.email || "",
+        avatar_url: data.avatar_url || "",
       });
     } catch (error: any) {
       toast({
@@ -138,9 +145,21 @@ const MesInformations = () => {
         last_name: formData.last_name,
         phone: formData.phone || null,
         school_level: formData.school_level || null,
+        email: formData.email,
+        avatar_url: formData.avatar_url,
       });
 
-      if (!profile?.id) return;
+      if (!profile?.id || !user) return;
+      
+      // Update email if it has changed
+      if (validatedData.email !== profile.email) {
+        const { error: authError } = await supabase.auth.updateUser({ email: validatedData.email });
+        if (authError) throw authError;
+        toast({
+          title: "Email mis à jour",
+          description: "Un email de confirmation a été envoyé à votre nouvelle adresse.",
+        });
+      }
 
       const { error } = await supabase
         .from("profiles")
@@ -149,6 +168,8 @@ const MesInformations = () => {
           last_name: validatedData.last_name,
           phone: validatedData.phone,
           school_level: validatedData.school_level as any,
+          email: validatedData.email,
+          avatar_url: validatedData.avatar_url,
         })
         .eq("id", profile.id);
 
@@ -309,6 +330,10 @@ const MesInformations = () => {
               <CardDescription>Vos informations personnelles d'inscription</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <AvatarUpload
+                url={formData.avatar_url}
+                onUpload={(url) => setFormData({ ...formData, avatar_url: url })}
+              />
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="first_name">Prénom</Label>
