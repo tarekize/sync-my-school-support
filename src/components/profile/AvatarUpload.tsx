@@ -26,27 +26,55 @@ export function AvatarUpload({ url, onUpload }: AvatarUploadProps) {
       }
 
       const file = event.target.files[0];
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const fileExt = file.name.split(".").pop()?.toLowerCase();
+      
+      // Validate file type
+      const allowedTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      if (!fileExt || !allowedTypes.includes(fileExt)) {
+        throw new Error("Format de fichier non supporté. Utilisez JPG, PNG, GIF ou WebP.");
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error("Le fichier est trop volumineux. Maximum 5 Mo.");
+      }
+      
+      // Use user folder path for RLS compatibility
+      const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, file);
+      // First, try to remove old avatars in user folder
+      try {
+        const { data: existingFiles } = await supabase.storage.from("avatars").list(user.id);
+        if (existingFiles && existingFiles.length > 0) {
+          const filesToDelete = existingFiles.map(f => `${user.id}/${f.name}`);
+          await supabase.storage.from("avatars").remove(filesToDelete);
+        }
+      } catch {
+        // Ignore errors when cleaning up old files
+      }
+
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
 
       if (uploadError) {
+        console.error("Upload error:", uploadError);
         throw uploadError;
       }
 
-      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(filePath);
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(fileName);
       
       onUpload(publicUrl);
       toast({
         title: "Succès",
-        description: "Votre avatar a été mis à jour.",
+        description: "Votre photo de profil a été mise à jour.",
       });
     } catch (error: any) {
+      console.error("Avatar upload error:", error);
       toast({
         title: "Erreur",
-        description: error.message,
+        description: error.message || "Impossible de télécharger l'image",
         variant: "destructive",
       });
     } finally {
