@@ -360,10 +360,13 @@ const MesInformations = () => {
                   <Input
                     id="email"
                     type="email"
-                    value={profile?.email || ""}
-                    disabled
-                    className="bg-muted"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="Votre adresse email"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Un email de confirmation sera envoyé si vous modifiez votre adresse.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
