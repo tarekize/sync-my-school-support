@@ -150,16 +150,41 @@ const MesInformations = () => {
       });
 
       if (!profile?.id || !user) return;
-
+      
       // Update email if it has changed
       if (validatedData.email !== profile.email) {
-        const { error: emailError } = await supabase.functions.invoke("update-user-email", {
-          body: { userId: profile.id, newEmail: validatedData.email },
-        });
-        if (emailError) throw emailError;
+        // Vérifier et rafraîchir la session avant de mettre à jour l'email
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !sessionData.session) {
+          toast({
+            title: "Session expirée",
+            description: "Veuillez vous reconnecter pour modifier votre email.",
+            variant: "destructive",
+          });
+          navigate("/auth");
+          return;
+        }
+
+        // Rafraîchir le token si nécessaire
+        await supabase.auth.refreshSession();
+
+        const { error: authError } = await supabase.auth.updateUser({ email: validatedData.email });
+        if (authError) {
+          if (authError.message.includes("session") || authError.message.includes("Auth session missing")) {
+            toast({
+              title: "Session expirée",
+              description: "Veuillez vous reconnecter pour modifier votre email.",
+              variant: "destructive",
+            });
+            navigate("/auth");
+            return;
+          }
+          throw authError;
+        }
         toast({
           title: "Email mis à jour",
-          description: "Votre email a été mis à jour avec succès.",
+          description: "Un email de confirmation a été envoyé à votre nouvelle adresse.",
         });
       }
 
@@ -170,7 +195,6 @@ const MesInformations = () => {
           last_name: validatedData.last_name,
           phone: validatedData.phone,
           school_level: validatedData.school_level as any,
-          email: validatedData.email,
           avatar_url: validatedData.avatar_url,
         })
         .eq("id", profile.id);
