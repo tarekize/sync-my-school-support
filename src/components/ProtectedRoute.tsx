@@ -7,12 +7,14 @@ interface ProtectedRouteProps {
   children: ReactNode;
   requiredRole?: 'admin' | 'parent' | 'student';
   requireAdmin?: boolean;
+  blockAdmin?: boolean;
 }
 
 export default function ProtectedRoute({ 
   children, 
   requiredRole,
-  requireAdmin = false 
+  requireAdmin = false,
+  blockAdmin = false
 }: ProtectedRouteProps) {
   const { user, loading, hasRole, isAdmin } = useAuth();
   const location = useLocation();
@@ -25,6 +27,15 @@ export default function ProtectedRoute({
       if (!user) {
         setAuthorized(false);
         return;
+      }
+
+      // Check if admin should be blocked from this route
+      if (blockAdmin) {
+        const isUserAdmin = await isAdmin();
+        if (isUserAdmin) {
+          setAuthorized(false);
+          return;
+        }
       }
 
       // If no specific requirements, user is authorized
@@ -51,7 +62,7 @@ export default function ProtectedRoute({
     }
 
     checkAuthorization();
-  }, [user, loading, requiredRole, requireAdmin, hasRole, isAdmin]);
+  }, [user, loading, requiredRole, requireAdmin, blockAdmin, hasRole, isAdmin]);
 
   // Show loading spinner while checking auth
   if (loading || authorized === null) {
@@ -70,9 +81,9 @@ export default function ProtectedRoute({
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // Redirect to home if not authorized
+  // Redirect to dashboard if admin is blocked or not authorized
   if (!authorized) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   // Render children if authorized
