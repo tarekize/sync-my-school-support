@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, GraduationCap, Settings, Search, LogOut, User as UserIcon, BookOpen } from "lucide-react";
+import { Users, GraduationCap, Settings, Search, LogOut, User as UserIcon, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -129,6 +129,7 @@ const Dashboard = () => {
   }
 
   const fullName = getFullName(profile);
+  const isAdmin = userRole === 'admin';
 
   return (
     <div className="min-h-screen bg-background">
@@ -163,12 +164,14 @@ const Dashboard = () => {
 
             {/* Right Side: Premium Button + User Menu */}
             <div className="flex items-center gap-4">
-              <Button 
-                className="bg-red-500 hover:bg-red-600 text-white font-semibold"
-                onClick={() => navigate("/pricing")}
-              >
-                Passer Premium
-              </Button>
+              {!isAdmin && (
+                <Button 
+                  className="bg-red-500 hover:bg-red-600 text-white font-semibold"
+                  onClick={() => navigate("/pricing")}
+                >
+                  Passer Premium
+                </Button>
+              )}
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -182,16 +185,24 @@ const Dashboard = () => {
                     <div className="text-left hidden md:block">
                       <p className="text-sm font-medium">{fullName}</p>
                       <p className="text-xs text-muted-foreground">
-                        {profile?.school_level && getSchoolLevelName(profile.school_level)}
+                        {isAdmin ? 'Administrateur' : profile?.school_level && getSchoolLevelName(profile.school_level)}
                       </p>
                     </div>
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={() => navigate("/account")}>
-                    <UserIcon className="mr-2 h-4 w-4" />
-                    <span>Gérer mon compte</span>
-                  </DropdownMenuItem>
+                  {!isAdmin && (
+                    <DropdownMenuItem onClick={() => navigate("/account")}>
+                      <UserIcon className="mr-2 h-4 w-4" />
+                      <span>Gérer mon compte</span>
+                    </DropdownMenuItem>
+                  )}
+                  {isAdmin && (
+                    <DropdownMenuItem onClick={() => navigate("/admin")}>
+                      <Users className="mr-2 h-4 w-4" />
+                      <span>Gestion Utilisateurs</span>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                     <LogOut className="mr-2 h-4 w-4" />
@@ -212,7 +223,7 @@ const Dashboard = () => {
               Bonjour {fullName} 👋
             </h1>
             <p className="text-muted-foreground">
-              Bienvenue sur votre tableau de bord
+              {isAdmin ? "Bienvenue sur votre espace d'administration" : "Bienvenue sur votre tableau de bord"}
             </p>
           </div>
 
@@ -235,7 +246,7 @@ const Dashboard = () => {
               </Card>
             )}
 
-            {userRole === 'admin' && (
+            {isAdmin && (
               <>
                 <Card 
                   className="hover:shadow-lg transition-shadow cursor-pointer"
@@ -254,26 +265,11 @@ const Dashboard = () => {
 
                 <Card 
                   className="hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => navigate("/editorial")}
-                >
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BookOpen className="h-5 w-5" />
-                      Espace Éditorial
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">Créez et gérez le contenu pédagogique</p>
-                  </CardContent>
-                </Card>
-
-                <Card 
-                  className="hover:shadow-lg transition-shadow cursor-pointer"
                   onClick={() => navigate("/analytics")}
                 >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Settings className="h-5 w-5" />
+                      <BarChart3 className="h-5 w-5" />
                       Analytics
                     </CardTitle>
                   </CardHeader>
@@ -292,11 +288,13 @@ const Dashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <GraduationCap className="h-5 w-5" />
-                  Mes Cours
+                  {isAdmin ? "Voir les Cours" : "Mes Cours"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Accédez à vos cours et leçons</p>
+                <p className="text-muted-foreground">
+                  {isAdmin ? "Consultez les cours par niveau" : "Accédez à vos cours et leçons"}
+                </p>
               </CardContent>
             </Card>
           </div>

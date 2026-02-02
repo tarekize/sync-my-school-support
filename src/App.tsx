@@ -65,7 +65,11 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/parent-dashboard" element={<ParentDashboard />} />
-              <Route path="/account" element={<Account />} />
+              <Route path="/account" element={
+                <ProtectedRoute blockAdmin>
+                  <Account />
+                </ProtectedRoute>
+              } />
               <Route path="/factures" element={<Factures />} />
               <Route path="/mes-informations" element={<MesInformations />} />
               <Route path="/update-success" element={<UpdateSuccess />} />
