@@ -56,28 +56,25 @@ export function AvatarUpload({ url, onUpload }: AvatarUploadProps) {
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      <Avatar className="h-24 w-24">
+      <Avatar className="h-24 w-24 border-2 border-primary/20">
         <AvatarImage src={url || undefined} />
-        <AvatarFallback>
+        <AvatarFallback className="text-2xl bg-primary/10 text-primary">
           {user?.email?.charAt(0).toUpperCase() || "U"}
         </AvatarFallback>
       </Avatar>
-      <div>
-        <Button asChild>
-          <label htmlFor="single">
-            {uploading ? "Chargement..." : "Changer l'avatar"}
+      <div className="relative">
+        <Button variant="outline" disabled={uploading} asChild>
+          <label htmlFor="avatar-upload" className="cursor-pointer">
+            {uploading ? "Chargement..." : url ? "Modifier la photo" : "Ajouter une photo"}
           </label>
         </Button>
         <input
-          style={{
-            visibility: "hidden",
-            position: "absolute",
-          }}
           type="file"
-          id="single"
+          id="avatar-upload"
           accept="image/*"
           onChange={uploadAvatar}
           disabled={uploading}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
       </div>
     </div>
