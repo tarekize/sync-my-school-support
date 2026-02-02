@@ -151,9 +151,8 @@ const MesInformations = () => {
 
       if (!profile?.id || !user) return;
       
-      // Update email if it has changed
+      // Update email if it has changed - using edge function for immediate update
       if (validatedData.email !== profile.email) {
-        // Vérifier et rafraîchir la session avant de mettre à jour l'email
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError || !sessionData.session) {
@@ -166,28 +165,21 @@ const MesInformations = () => {
           return;
         }
 
-        // Rafraîchir le token si nécessaire
-        await supabase.auth.refreshSession();
-
-        const { error: authError } = await supabase.auth.updateUser({ email: validatedData.email });
-        if (authError) {
-          if (authError.message.includes("session") || authError.message.includes("Auth session missing")) {
-            toast({
-              title: "Session expirée",
-              description: "Veuillez vous reconnecter pour modifier votre email.",
-              variant: "destructive",
-            });
-            navigate("/auth");
-            return;
-          }
-          throw authError;
+        const { error: emailError } = await supabase.functions.invoke("update-user-email", {
+          body: { userId: profile.id, newEmail: validatedData.email },
+        });
+        
+        if (emailError) {
+          throw new Error(emailError.message || "Erreur lors de la mise à jour de l'email");
         }
+        
         toast({
           title: "Email mis à jour",
-          description: "Un email de confirmation a été envoyé à votre nouvelle adresse.",
+          description: "Votre email a été modifié avec succès. Vous pouvez maintenant vous connecter avec votre nouvelle adresse.",
         });
       }
 
+      // Update other profile fields (email is already updated by edge function)
       const { error } = await supabase
         .from("profiles")
         .update({
