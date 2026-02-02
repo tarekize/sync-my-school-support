@@ -319,6 +319,9 @@ const Auth = () => {
                   <p className="text-sm text-muted-foreground mt-2">
                     Entrez l'adresse e-mail avec laquelle vous vous êtes inscrit. Nous allons vous envoyer un e-mail avec votre nom d'utilisateur et un lien pour réinitialiser votre mot de passe.
                   </p>
+                  <p className="text-sm font-medium text-warning mt-2">
+                    ⚠️ Ce lien expirera dans 1 heure.
+                  </p>
                 </div>
 
                 <Button type="submit" className="w-full bg-primary" disabled={loading}>

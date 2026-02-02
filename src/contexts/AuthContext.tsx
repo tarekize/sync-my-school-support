@@ -35,6 +35,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Vérifier si l'utilisateur SSO a besoin de compléter son profil
+      if (session?.user) {
+        setTimeout(async () => {
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+
+          // Si pas de rôle et qu'on n'est pas déjà sur la page de complétion
+          if (!roleData?.role && !window.location.pathname.includes('/complete-profile') && !window.location.pathname.includes('/auth')) {
+            window.location.href = '/complete-profile';
+          }
+        }, 0);
+      }
     });
 
     return () => subscription.unsubscribe();
