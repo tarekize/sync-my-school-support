@@ -121,6 +121,19 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const validatePassword = (password: string): string | null => {
+    if (password.length < 8) {
+      return "Le mot de passe doit contenir au moins 8 caractères.";
+    }
+    if (!/[A-Z]/.test(password)) {
+      return "Le mot de passe doit contenir au moins une lettre majuscule.";
+    }
+    if (!/\d/.test(password)) {
+      return "Le mot de passe doit contenir au moins un chiffre.";
+    }
+    return null;
+  };
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -131,6 +144,13 @@ const Auth = () => {
     if (!isLogin) {
       if (!firstName || !lastName || !email || !password || !profileType) {
         toast.error("Veuillez remplir tous les champs obligatoires.");
+        return;
+      }
+
+      // Validation du mot de passe
+      const passwordError = validatePassword(password);
+      if (passwordError) {
+        toast.error(passwordError);
         return;
       }
 
