@@ -126,13 +126,14 @@ export function useAdminUsers() {
 
   const deleteUser = async (userId: string) => {
     try {
-      // Note: This only removes the profile. Full account deletion requires server-side action
-      const { error } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
+      // Use Edge Function to delete user from Auth and all related data
+      const response = await supabase.functions.invoke("admin-delete-user", {
+        body: { userId },
+      });
 
-      if (error) throw error;
+      if (response.error) {
+        throw new Error(response.error.message || "Erreur lors de la suppression");
+      }
 
       await supabase.rpc("log_activity", {
         _user_id: user?.id,
@@ -141,11 +142,11 @@ export function useAdminUsers() {
       });
 
       await fetchUsers();
-      toast.success("Utilisateur supprimé");
+      toast.success("Utilisateur supprimé définitivement");
       return true;
     } catch (error: any) {
       console.error("Error deleting user:", error);
-      toast.error("Erreur lors de la suppression");
+      toast.error(error.message || "Erreur lors de la suppression");
       return false;
     }
   };

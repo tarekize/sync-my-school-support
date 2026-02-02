@@ -53,6 +53,7 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getSchoolLevelLabel } from "@/lib/validation";
+import { AddUserDialog } from "@/components/admin/AddUserDialog";
 
 // Helper to get full name from profile
 const getFullName = (user: AdminUser): string => {
@@ -70,7 +71,7 @@ const getPrimaryRole = (user: AdminUser): string => {
 
 export default function Admin() {
   const navigate = useNavigate();
-  const { users, stats, loading, toggleUserStatus, deleteUser } = useAdminUsers();
+  const { users, stats, loading, toggleUserStatus, deleteUser, refetch } = useAdminUsers();
   const { logs, loading: logsLoading } = useActivityLogs(100);
 
   const [searchQueryParents, setSearchQueryParents] = useState("");
@@ -183,24 +184,28 @@ export default function Admin() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="bg-muted/50 p-1">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-background">
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="parents" className="flex items-center gap-2 data-[state=active]:bg-background">
-              <User className="h-4 w-4" />
-              Parents ({parents.length})
-            </TabsTrigger>
-            <TabsTrigger value="students" className="flex items-center gap-2 data-[state=active]:bg-background">
-              <GraduationCap className="h-4 w-4" />
-              Élèves ({students.length})
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2 data-[state=active]:bg-background">
-              <Activity className="h-4 w-4" />
-              Activité
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between">
+            <TabsList className="bg-muted/50 p-1">
+              <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-background">
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="parents" className="flex items-center gap-2 data-[state=active]:bg-background">
+                <User className="h-4 w-4" />
+                Parents ({parents.length})
+              </TabsTrigger>
+              <TabsTrigger value="students" className="flex items-center gap-2 data-[state=active]:bg-background">
+                <GraduationCap className="h-4 w-4" />
+                Élèves ({students.length})
+              </TabsTrigger>
+              <TabsTrigger value="logs" className="flex items-center gap-2 data-[state=active]:bg-background">
+                <Activity className="h-4 w-4" />
+                Activité
+              </TabsTrigger>
+            </TabsList>
+
+            <AddUserDialog onUserAdded={refetch} />
+          </div>
 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">

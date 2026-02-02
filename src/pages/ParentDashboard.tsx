@@ -44,6 +44,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { getSchoolLevelLabel } from "@/lib/validation";
+import { ChangePasswordButton } from "@/components/ChangePasswordButton";
 
 interface Profile {
   id: string;
@@ -256,7 +257,9 @@ const ParentDashboard = () => {
               <span className="text-xl font-bold">AcadémiePlus</span>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <ChangePasswordButton />
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div className="flex items-center gap-2 cursor-pointer hover:bg-accent/10 rounded-lg p-2 transition-colors">

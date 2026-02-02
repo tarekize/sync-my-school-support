@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, GraduationCap, Settings, Search, LogOut, User as UserIcon, BarChart3 } from "lucide-react";
+import { Users, GraduationCap, Search, LogOut, User as UserIcon, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ChangePasswordButton } from "@/components/ChangePasswordButton";
 
 interface Profile {
   id: string;
@@ -173,43 +174,47 @@ const Dashboard = () => {
                 </Button>
               )}
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <div className="flex items-center gap-2 cursor-pointer hover:bg-accent rounded-lg p-2 transition-colors">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={profile?.avatar_url || undefined} />
-                      <AvatarFallback>
-                        {fullName.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="text-left hidden md:block">
-                      <p className="text-sm font-medium">{fullName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {isAdmin ? 'Administrateur' : profile?.school_level && getSchoolLevelName(profile.school_level)}
-                      </p>
+              <div className="flex items-center gap-3">
+                <ChangePasswordButton />
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div className="flex items-center gap-2 cursor-pointer hover:bg-accent rounded-lg p-2 transition-colors">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={profile?.avatar_url || undefined} />
+                        <AvatarFallback>
+                          {fullName.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="text-left hidden md:block">
+                        <p className="text-sm font-medium">{fullName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {isAdmin ? 'Administrateur' : profile?.school_level && getSchoolLevelName(profile.school_level)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  {!isAdmin && (
-                    <DropdownMenuItem onClick={() => navigate("/account")}>
-                      <UserIcon className="mr-2 h-4 w-4" />
-                      <span>Gérer mon compte</span>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {!isAdmin && (
+                      <DropdownMenuItem onClick={() => navigate("/account")}>
+                        <UserIcon className="mr-2 h-4 w-4" />
+                        <span>Gérer mon compte</span>
+                      </DropdownMenuItem>
+                    )}
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={() => navigate("/admin")}>
+                        <Users className="mr-2 h-4 w-4" />
+                        <span>Gestion Utilisateurs</span>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Se déconnecter</span>
                     </DropdownMenuItem>
-                  )}
-                  {isAdmin && (
-                    <DropdownMenuItem onClick={() => navigate("/admin")}>
-                      <Users className="mr-2 h-4 w-4" />
-                      <span>Gestion Utilisateurs</span>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Se déconnecter</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
         </div>
