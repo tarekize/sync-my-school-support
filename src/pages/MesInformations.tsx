@@ -42,12 +42,21 @@ import { LinkedChildrenSection } from "@/components/profile/LinkedChildrenSectio
 import { LinkedParentsSection } from "@/components/profile/LinkedParentsSection";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import TwoFactorSettings from "@/components/TwoFactorSettings";
+import { SchoolLevelSelect } from "@/components/profile/SchoolLevelSelect";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const profileSchema = z.object({
   first_name: z.string().trim().min(1, "Le prénom est requis").max(100, "Le prénom ne peut pas dépasser 100 caractères"),
   last_name: z.string().trim().min(1, "Le nom est requis").max(100, "Le nom ne peut pas dépasser 100 caractères"),
   phone: z.string().trim().max(20, "Le téléphone ne peut pas dépasser 20 caractères").optional().nullable(),
   school_level: z.string().optional().nullable(),
+  filiere: z.string().optional().nullable(),
   email: z.string().email("L'adresse email n'est pas valide"),
   avatar_url: z.string().optional().nullable(),
 });
@@ -59,6 +68,7 @@ interface Profile {
   email: string | null;
   phone: string | null;
   school_level: string | null;
+  filiere: string | null;
   avatar_url: string | null;
   linking_code: string | null;
 }
@@ -78,6 +88,7 @@ const MesInformations = () => {
     last_name: "",
     phone: "",
     school_level: "",
+    filiere: "",
     email: "",
     avatar_url: "",
   });
@@ -106,7 +117,7 @@ const MesInformations = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, email, phone, school_level, avatar_url, linking_code")
+        .select("id, first_name, last_name, email, phone, school_level, filiere, avatar_url, linking_code")
         .eq("id", userId)
         .single();
 
@@ -117,6 +128,7 @@ const MesInformations = () => {
         last_name: data.last_name || "",
         phone: data.phone || "",
         school_level: data.school_level || "",
+        filiere: data.filiere || "",
         email: data.email || "",
         avatar_url: data.avatar_url || "",
       });
@@ -146,6 +158,7 @@ const MesInformations = () => {
         last_name: formData.last_name,
         phone: formData.phone || null,
         school_level: formData.school_level || null,
+        filiere: formData.filiere || null,
         email: formData.email,
         avatar_url: formData.avatar_url,
       });
@@ -188,6 +201,7 @@ const MesInformations = () => {
           last_name: validatedData.last_name,
           phone: validatedData.phone,
           school_level: validatedData.school_level as any,
+          filiere: validatedData.filiere,
           avatar_url: validatedData.avatar_url,
         })
         .eq("id", profile.id);
@@ -245,15 +259,47 @@ const MesInformations = () => {
 
   const getSchoolLevelName = (level: string) => {
     const levels: Record<string, string> = {
-      "6eme": "6ème",
-      "5eme": "5ème",
-      "4eme": "4ème",
-      "3eme": "3ème",
+      "5eme_primaire": "5ème Primaire",
+      "1ere_cem": "1ère CEM",
+      "2eme_cem": "2ème CEM",
+      "3eme_cem": "3ème CEM",
+      "4eme_cem": "4ème CEM",
       seconde: "Seconde",
       premiere: "Première",
       terminale: "Terminale",
     };
     return levels[level] || level || "Votre classe";
+  };
+
+  const getFiliereLabel = (filiere: string) => {
+    const filieres: Record<string, string> = {
+      tronc_commun_scientifique: "Tronc commun scientifique",
+      tronc_commun_lettres: "Tronc commun lettres",
+      sciences: "Sciences",
+      lettres: "Lettres",
+      gestion: "Gestion",
+      math_techniques: "Math techniques",
+      mathematiques: "Mathématiques",
+    };
+    return filieres[filiere] || filiere;
+  };
+
+  const showFiliereSelector = ["premiere", "seconde", "terminale"].includes(formData.school_level);
+
+  const getFilieresForLevel = (level: string) => {
+    if (level === "premiere") {
+      return [
+        { value: "tronc_commun_scientifique", label: "Tronc commun scientifique" },
+        { value: "tronc_commun_lettres", label: "Tronc commun lettres" },
+      ];
+    }
+    return [
+      { value: "sciences", label: "Sciences" },
+      { value: "lettres", label: "Lettres" },
+      { value: "gestion", label: "Gestion" },
+      { value: "math_techniques", label: "Math techniques" },
+      { value: "mathematiques", label: "Mathématiques" },
+    ];
   };
 
   const handleLogout = async () => {
@@ -400,24 +446,43 @@ const MesInformations = () => {
                 </div>
 
                 {userRole !== 'parent' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="school_level">Niveau scolaire</Label>
-                    <select
-                      id="school_level"
-                      value={formData.school_level}
-                      onChange={(e) => setFormData({ ...formData, school_level: e.target.value })}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    >
-                      <option value="">Sélectionnez un niveau</option>
-                      <option value="6eme">6ème</option>
-                      <option value="5eme">5ème</option>
-                      <option value="4eme">4ème</option>
-                      <option value="3eme">3ème</option>
-                      <option value="seconde">Seconde</option>
-                      <option value="premiere">Première</option>
-                      <option value="terminale">Terminale</option>
-                    </select>
-                  </div>
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="school_level">Niveau scolaire</Label>
+                      <SchoolLevelSelect
+                        value={formData.school_level}
+                        onValueChange={(value) => {
+                          setFormData({ 
+                            ...formData, 
+                            school_level: value,
+                            // Reset filière when changing level
+                            filiere: ["premiere", "seconde", "terminale"].includes(value) ? formData.filiere : ""
+                          });
+                        }}
+                      />
+                    </div>
+
+                    {showFiliereSelector && (
+                      <div className="space-y-2">
+                        <Label htmlFor="filiere">Filière</Label>
+                        <Select
+                          value={formData.filiere}
+                          onValueChange={(value) => setFormData({ ...formData, filiere: value })}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Sélectionnez votre filière" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getFilieresForLevel(formData.school_level).map((f) => (
+                              <SelectItem key={f.value} value={f.value}>
+                                {f.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Code de liaison pour les élèves */}
