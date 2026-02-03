@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ChapterMathQuiz } from "@/components/course/ChapterMathQuiz";
 import { ChapterMathExercises } from "@/components/course/ChapterMathExercises";
 import { mathSecondeChapters, getChapterContent, ChapterContent } from "@/data/mathSecondeChapters";
+import { mathPremiereTCSChapters } from "@/data/mathPremiereTCS";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,7 @@ interface Profile {
   last_name: string | null;
   avatar_url: string | null;
   school_level: string | null;
+  filiere: string | null;
   email: string | null;
 }
 
@@ -84,23 +86,35 @@ const Cours = () => {
 
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, avatar_url, school_level, email")
+        .select("id, first_name, last_name, avatar_url, school_level, filiere, email")
         .eq("id", user.id)
         .single();
 
-      setProfile(profileData);
+      setProfile(profileData as Profile | null);
       setSchoolLevel(profileData?.school_level || "");
 
-      // Use local static chapters for math seconde
-      if (subjectId === "math" && profileData?.school_level === "seconde") {
-        const staticChapters: Chapter[] = mathSecondeChapters.map((ch, index) => {
-          return {
+      // Use local static chapters for math based on school_level and filiere
+      if (subjectId === "math") {
+        let staticChapters: Chapter[] = [];
+        
+        if (profileData?.school_level === "seconde") {
+          staticChapters = mathSecondeChapters.map((ch, index) => ({
             id: ch.chapterId,
             title: ch.chapterTitle,
             order_index: index,
             content: `<h2>${ch.chapterTitle}</h2><p>Ce chapitre contient ${ch.quizzes.length} questions de quiz et ${ch.exercises.length} exercices.</p>`,
-          };
-        });
+          }));
+        } else if (profileData?.school_level === "premiere" && profileData?.filiere === "tronc_commun_scientifique") {
+          // Load Première TCS chapters
+          staticChapters = mathPremiereTCSChapters.map((ch, index) => ({
+            id: ch.id,
+            title: `${ch.title} - ${ch.titleAr}`,
+            order_index: index,
+            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>
+              <ul>${ch.lessons.map(l => `<li><strong>${l.titleAr}</strong> - ${l.title}</li>`).join('')}</ul>`,
+          }));
+        }
+        
         setChapters(staticChapters);
         if (staticChapters.length > 0) {
           setActiveChapter(staticChapters[0]);
