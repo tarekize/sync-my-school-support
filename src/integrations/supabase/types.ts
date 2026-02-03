@@ -182,12 +182,13 @@ export type Database = {
       app_role: "student" | "parent" | "admin"
       link_status: "pending" | "active" | "rejected"
       school_level:
-        | "6eme"
-        | "5eme"
-        | "4eme"
-        | "3eme"
-        | "seconde"
+        | "5eme_primaire"
+        | "1ere_cem"
+        | "2eme_cem"
+        | "3eme_cem"
+        | "4eme_cem"
         | "premiere"
+        | "seconde"
         | "terminale"
     }
     CompositeTypes: {
@@ -319,12 +320,13 @@ export const Constants = {
       app_role: ["student", "parent", "admin"],
       link_status: ["pending", "active", "rejected"],
       school_level: [
-        "6eme",
-        "5eme",
-        "4eme",
-        "3eme",
-        "seconde",
+        "5eme_primaire",
+        "1ere_cem",
+        "2eme_cem",
+        "3eme_cem",
+        "4eme_cem",
         "premiere",
+        "seconde",
         "terminale",
       ],
     },
