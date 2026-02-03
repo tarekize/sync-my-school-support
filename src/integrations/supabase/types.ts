@@ -97,6 +97,7 @@ export type Database = {
           created_at: string | null
           email: string
           email_verified: boolean | null
+          filiere: string | null
           first_name: string | null
           id: string
           is_active: boolean | null
@@ -111,6 +112,7 @@ export type Database = {
           created_at?: string | null
           email: string
           email_verified?: boolean | null
+          filiere?: string | null
           first_name?: string | null
           id: string
           is_active?: boolean | null
@@ -125,6 +127,7 @@ export type Database = {
           created_at?: string | null
           email?: string
           email_verified?: boolean | null
+          filiere?: string | null
           first_name?: string | null
           id?: string
           is_active?: boolean | null
