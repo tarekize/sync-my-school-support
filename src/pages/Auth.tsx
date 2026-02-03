@@ -228,6 +228,21 @@ const Auth = () => {
         // N'inclure school_level que pour les élèves avec la valeur convertie
         if (profileType === 'enfant' && classLevel) {
           userData.school_level = schoolLevelMapping[classLevel] || classLevel.toLowerCase();
+          
+          // Ajouter la filière si sélectionnée
+          if (filiere) {
+            // Convertir la filière en format snake_case pour le stockage
+            const filiereMapping: Record<string, string> = {
+              "Tronc commun scientifique": "tronc_commun_scientifique",
+              "Tronc commun lettres": "tronc_commun_lettres",
+              "Sciences": "sciences",
+              "Lettres": "lettres",
+              "Gestion": "gestion",
+              "Math techniques": "math_techniques",
+              "Mathématiques": "mathematiques",
+            };
+            userData.filiere = filiereMapping[filiere] || filiere.toLowerCase().replace(/\s+/g, '_');
+          }
         }
 
         const { error } = await supabase.auth.signUp({
