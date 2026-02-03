@@ -193,12 +193,13 @@ const Auth = () => {
       } else {
         // Mapping des valeurs d'affichage vers les valeurs de l'enum
         const schoolLevelMapping: Record<string, string> = {
-          "6ème": "6eme",
-          "5ème": "5eme",
-          "4ème": "4eme",
-          "3ème": "3eme",
+          "5ème Primaire": "5eme_primaire",
+          "1ère CEM": "1ere_cem",
+          "2ème CEM": "2eme_cem",
+          "3ème CEM": "3eme_cem",
+          "4ème CEM": "4eme_cem",
+          "Première": "premiere",
           "Seconde": "seconde",
-          "1ère": "premiere",
           "Terminale": "terminale",
         };
 
@@ -555,52 +556,76 @@ const Auth = () => {
                             (submitted || touched.classLevel) && !classLevel && profileType === "enfant" ? "ring-2 ring-red-500" : ""
                           )}>
                             <Label
-                              htmlFor="6ème"
+                              htmlFor="5ème Primaire"
                               className={cn(
                                 "flex items-center justify-center h-10 px-4 rounded-md border-2 cursor-pointer transition-all font-medium",
-                                classLevel === "6ème"
+                                classLevel === "5ème Primaire"
                                   ? "bg-primary text-primary-foreground border-primary shadow-md"
                                   : "bg-secondary/20 border-border hover:bg-secondary/30 hover:border-primary"
                               )}
                             >
-                              <RadioGroupItem value="6ème" id="6ème" className="sr-only" />
-                              6ème
+                              <RadioGroupItem value="5ème Primaire" id="5ème Primaire" className="sr-only" />
+                              5ème Primaire
                             </Label>
                             <Label
-                              htmlFor="5ème"
+                              htmlFor="1ère CEM"
                               className={cn(
                                 "flex items-center justify-center h-10 px-4 rounded-md border-2 cursor-pointer transition-all font-medium",
-                                classLevel === "5ème"
+                                classLevel === "1ère CEM"
                                   ? "bg-primary text-primary-foreground border-primary shadow-md"
                                   : "bg-secondary/20 border-border hover:bg-secondary/30 hover:border-primary"
                               )}
                             >
-                              <RadioGroupItem value="5ème" id="5ème" className="sr-only" />
-                              5ème
+                              <RadioGroupItem value="1ère CEM" id="1ère CEM" className="sr-only" />
+                              1ère CEM
                             </Label>
                             <Label
-                              htmlFor="4ème"
+                              htmlFor="2ème CEM"
                               className={cn(
                                 "flex items-center justify-center h-10 px-4 rounded-md border-2 cursor-pointer transition-all font-medium",
-                                classLevel === "4ème"
+                                classLevel === "2ème CEM"
                                   ? "bg-primary text-primary-foreground border-primary shadow-md"
                                   : "bg-secondary/20 border-border hover:bg-secondary/30 hover:border-primary"
                               )}
                             >
-                              <RadioGroupItem value="4ème" id="4ème" className="sr-only" />
-                              4ème
+                              <RadioGroupItem value="2ème CEM" id="2ème CEM" className="sr-only" />
+                              2ème CEM
                             </Label>
                             <Label
-                              htmlFor="3ème"
+                              htmlFor="3ème CEM"
                               className={cn(
                                 "flex items-center justify-center h-10 px-4 rounded-md border-2 cursor-pointer transition-all font-medium",
-                                classLevel === "3ème"
+                                classLevel === "3ème CEM"
                                   ? "bg-primary text-primary-foreground border-primary shadow-md"
                                   : "bg-secondary/20 border-border hover:bg-secondary/30 hover:border-primary"
                               )}
                             >
-                              <RadioGroupItem value="3ème" id="3ème" className="sr-only" />
-                              3ème
+                              <RadioGroupItem value="3ème CEM" id="3ème CEM" className="sr-only" />
+                              3ème CEM
+                            </Label>
+                            <Label
+                              htmlFor="4ème CEM"
+                              className={cn(
+                                "flex items-center justify-center h-10 px-4 rounded-md border-2 cursor-pointer transition-all font-medium",
+                                classLevel === "4ème CEM"
+                                  ? "bg-primary text-primary-foreground border-primary shadow-md"
+                                  : "bg-secondary/20 border-border hover:bg-secondary/30 hover:border-primary"
+                              )}
+                            >
+                              <RadioGroupItem value="4ème CEM" id="4ème CEM" className="sr-only" />
+                              4ème CEM
+                            </Label>
+                            <Label
+                              htmlFor="Première"
+                              className={cn(
+                                "flex items-center justify-center h-10 px-4 rounded-md border-2 cursor-pointer transition-all font-medium",
+                                classLevel === "Première"
+                                  ? "bg-primary text-primary-foreground border-primary shadow-md"
+                                  : "bg-secondary/20 border-border hover:bg-secondary/30 hover:border-primary"
+                              )}
+                            >
+                              <RadioGroupItem value="Première" id="Première" className="sr-only" />
+                              Première
                             </Label>
                             <Label
                               htmlFor="Seconde"
@@ -613,18 +638,6 @@ const Auth = () => {
                             >
                               <RadioGroupItem value="Seconde" id="Seconde" className="sr-only" />
                               Seconde
-                            </Label>
-                            <Label
-                              htmlFor="1ère"
-                              className={cn(
-                                "flex items-center justify-center h-10 px-4 rounded-md border-2 cursor-pointer transition-all font-medium",
-                                classLevel === "1ère"
-                                  ? "bg-primary text-primary-foreground border-primary shadow-md"
-                                  : "bg-secondary/20 border-border hover:bg-secondary/30 hover:border-primary"
-                              )}
-                            >
-                              <RadioGroupItem value="1ère" id="1ère" className="sr-only" />
-                              1ère
                             </Label>
                             <Label
                               htmlFor="Terminale"
