@@ -7,6 +7,7 @@ import { mathSecondeChapters, getChapterContent, ChapterContent } from "@/data/m
 import { mathPremiereTCSChapters } from "@/data/mathPremiereTCS";
 import { mathPremiereTCLChapters } from "@/data/mathPremiereTCL";
 import { mathSecondeChaptersAr } from "@/data/mathSecondeAr";
+import { mathSecondeLettresGestionChapters } from "@/data/mathSecondeLettresGestion";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -107,9 +108,18 @@ const Cours = () => {
         let staticChapters: Chapter[] = [];
         
         if (profileData?.school_level === "seconde") {
-          // Check if filiere is sciences, math_techniques, or mathematiques for Arabic curriculum
+          const filiere = profileData?.filiere;
           const arabicFilieres = ["sciences", "math_techniques", "mathematiques"];
-          if (profileData?.filiere && arabicFilieres.includes(profileData.filiere)) {
+
+          if (filiere === "lettres" || filiere === "gestion") {
+            staticChapters = mathSecondeLettresGestionChapters.map((ch, index) => ({
+              id: ch.id,
+              title: `${ch.title} - ${ch.titleAr}`,
+              order_index: index,
+              content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
+              lessons: ch.lessons,
+            }));
+          } else if (filiere && arabicFilieres.includes(filiere)) {
             // Load Arabic curriculum for Seconde (Sciences, Math techniques, Mathématiques)
             staticChapters = mathSecondeChaptersAr.map((ch, index) => ({
               id: ch.id,
