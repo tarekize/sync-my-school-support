@@ -45,11 +45,18 @@ interface Profile {
   email: string | null;
 }
 
+interface Lesson {
+  id: string;
+  title: string;
+  titleAr: string;
+}
+
 interface Chapter {
   id: string;
   title: string;
   order_index: number;
   content: string;
+  lessons?: Lesson[];
 }
 
 const Cours = () => {
@@ -108,8 +115,8 @@ const Cours = () => {
               id: ch.id,
               title: `${ch.title} - ${ch.titleAr}`,
               order_index: index,
-              content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>
-                <div class="mt-4 flex flex-col gap-2">${ch.lessons.map(l => `<button class="w-full text-left p-3 border rounded-lg hover:bg-accent/10 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"><strong>${l.titleAr}</strong> - ${l.title}</button>`).join('')}</div>`,
+              content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
+              lessons: ch.lessons,
             }));
           } else {
             // Default French curriculum for Seconde
@@ -126,8 +133,8 @@ const Cours = () => {
             id: ch.id,
             title: `${ch.title} - ${ch.titleAr}`,
             order_index: index,
-            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>
-              <div class="mt-4 flex flex-col gap-2">${ch.lessons.map(l => `<button class="w-full text-left p-3 border rounded-lg hover:bg-accent/10 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"><strong>${l.titleAr}</strong> - ${l.title}</button>`).join('')}</div>`,
+            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
+            lessons: ch.lessons,
           }));
         } else if (profileData?.school_level === "premiere" && profileData?.filiere === "tronc_commun_lettres") {
           // Load Première TCL chapters
@@ -135,8 +142,8 @@ const Cours = () => {
             id: ch.id,
             title: `${ch.title} - ${ch.titleAr}`,
             order_index: index,
-            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>
-              <div class="mt-4 flex flex-col gap-2">${ch.lessons.map(l => `<button class="w-full text-left p-3 border rounded-lg hover:bg-accent/10 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"><strong>${l.titleAr}</strong> - ${l.title}</button>`).join('')}</div>`,
+            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
+            lessons: ch.lessons,
           }));
         }
         
@@ -445,10 +452,30 @@ const Cours = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div 
-                  className="prose prose-sm dark:prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: activeChapter.content || "<p>Contenu non disponible</p>" }}
-                />
+                <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
+                  <div dangerouslySetInnerHTML={{ __html: activeChapter.content || "<p>Contenu non disponible</p>" }} />
+                </div>
+                
+                {/* Interactive lessons list */}
+                {activeChapter.lessons && activeChapter.lessons.length > 0 && (
+                  <div className="mt-6 space-y-2">
+                    <h3 className="text-lg font-semibold mb-4">الدروس - Leçons</h3>
+                    {activeChapter.lessons.map((lesson, idx) => (
+                      <div
+                        key={lesson.id}
+                        className="w-full text-right p-4 border rounded-lg hover:bg-accent/10 transition-colors cursor-pointer flex items-center gap-3"
+                      >
+                        <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold shrink-0">
+                          {idx + 1}
+                        </span>
+                        <div className="flex-1">
+                          <p className="font-medium text-base">{lesson.titleAr}</p>
+                          <p className="text-sm text-muted-foreground">{lesson.title}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
