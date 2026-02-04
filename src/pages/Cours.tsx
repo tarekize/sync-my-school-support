@@ -5,6 +5,7 @@ import { ChapterMathQuiz } from "@/components/course/ChapterMathQuiz";
 import { ChapterMathExercises } from "@/components/course/ChapterMathExercises";
 import { mathSecondeChapters, getChapterContent, ChapterContent } from "@/data/mathSecondeChapters";
 import { mathPremiereTCSChapters } from "@/data/mathPremiereTCS";
+import { mathPremiereTCLChapters } from "@/data/mathPremiereTCL";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -107,6 +108,15 @@ const Cours = () => {
         } else if (profileData?.school_level === "premiere" && profileData?.filiere === "tronc_commun_scientifique") {
           // Load Première TCS chapters
           staticChapters = mathPremiereTCSChapters.map((ch, index) => ({
+            id: ch.id,
+            title: `${ch.title} - ${ch.titleAr}`,
+            order_index: index,
+            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>
+              <div class="mt-4 flex flex-col gap-2">${ch.lessons.map(l => `<button class="w-full text-left p-3 border rounded-lg hover:bg-accent/10 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"><strong>${l.titleAr}</strong> - ${l.title}</button>`).join('')}</div>`,
+          }));
+        } else if (profileData?.school_level === "premiere" && profileData?.filiere === "tronc_commun_lettres") {
+          // Load Première TCL chapters
+          staticChapters = mathPremiereTCLChapters.map((ch, index) => ({
             id: ch.id,
             title: `${ch.title} - ${ch.titleAr}`,
             order_index: index,
