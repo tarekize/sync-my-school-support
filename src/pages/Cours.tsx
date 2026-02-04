@@ -111,7 +111,7 @@ const Cours = () => {
             title: `${ch.title} - ${ch.titleAr}`,
             order_index: index,
             content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>
-              <ul>${ch.lessons.map(l => `<li><strong>${l.titleAr}</strong> - ${l.title}</li>`).join('')}</ul>`,
+              <div class="mt-4 flex flex-col gap-2">${ch.lessons.map(l => `<button class="w-full text-left p-3 border rounded-lg hover:bg-accent/10 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"><strong>${l.titleAr}</strong> - ${l.title}</button>`).join('')}</div>`,
           }));
         }
         
