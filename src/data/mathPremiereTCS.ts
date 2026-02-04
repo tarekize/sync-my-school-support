@@ -124,6 +124,65 @@ export const mathPremiereTCSChapters: Chapter[] = [
       },
     ],
   },
+  {
+    id: "chap-5-tic",
+    title: "Technologies de l'information et de la communication",
+    titleAr: "تكنولوجيات الإعلام والاتصال",
+    lessons: [
+      {
+        id: "lesson-5-1",
+        title: "Utilisation de la calculatrice scientifique",
+        titleAr: "استخدام الحاسبة العلمية لبناء تعلّمات ولإجراء حسابات قصد حل مشكلة والوعي بحدودها",
+      },
+      {
+        id: "lesson-5-2",
+        title: "Logiciels et calculatrice pour expérimentation",
+        titleAr: "استخدام البرمجيات والحاسبة العلمية أو البيانية للتجريب والتخمين ومقارنة نتائج والتصديق وللتطرق إلى مفهوم جديد (مفهوم الدالة، المحاكاة، ... )",
+      },
+      {
+        id: "lesson-5-3",
+        title: "Tracé de courbes de fonctions",
+        titleAr: "توظيف البرمجيات والحاسبة البيانية لاستخراج منحنى دالة قصد استغلاله",
+      },
+      {
+        id: "lesson-5-4",
+        title: "Indicateurs statistiques et représentations",
+        titleAr: "توظيف البرمجيات والحاسبة البيانية لحساب مؤشرات الموقع لسلسلة إحصائية أو لاستخراج تمثيلات بيانية أو مخططات خاصة بهذه السلسلة",
+      },
+    ],
+  },
+  {
+    id: "chap-6-logique",
+    title: "Logique et démonstration mathématique",
+    titleAr: "المنطق والبرهان الرياضي",
+    lessons: [
+      {
+        id: "lesson-6-1",
+        title: "Propositions simples et composées",
+        titleAr: "الحكم على القضايا البسيطة والمركبة",
+      },
+      {
+        id: "lesson-6-2",
+        title: "Démonstration par déduction, absurde et cas",
+        titleAr: "ممارسة البرهان بالاستنتاج وبالخلف وبفصل الحالات وبمثال مضاد",
+      },
+      {
+        id: "lesson-6-3",
+        title: "Reconnaissance et validation de preuves",
+        titleAr: "التعرف على نمط برهان معطى وشرحه وتصديقه",
+      },
+      {
+        id: "lesson-6-4",
+        title: "Distinction des types de démonstration",
+        titleAr: "التمييز بين أنماط البرهان الذي يمارس في هذا المستوى",
+      },
+      {
+        id: "lesson-6-5",
+        title: "Lien entre démonstration et formule logique",
+        titleAr: "تقريب نمط برهان من صيغة منطقية له",
+      },
+    ],
+  },
 ];
 
 export const getCourseInfo = () => ({
