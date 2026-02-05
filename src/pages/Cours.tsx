@@ -17,6 +17,7 @@ import { mathCem4emeChapters } from "@/data/mathCem4eme";
 import { mathCem3emeChapters } from "@/data/mathCem3eme";
 import { mathCem2emeChapters } from "@/data/mathCem2eme";
 import { mathCem1ereChapters } from "@/data/mathCem1ere";
+import { mathPrimaire5emeChapters } from "@/data/mathPrimaire5eme";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
