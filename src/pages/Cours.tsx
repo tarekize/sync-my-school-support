@@ -11,6 +11,8 @@ import { mathSecondeLettresGestionChapters } from "@/data/mathSecondeLettresGest
 import { mathTerminaleSciencesChapters } from "@/data/mathTerminaleSciences";
 import { mathTerminaleLettresChapters } from "@/data/mathTerminaleLettres";
 import { mathTerminaleGestionChapters } from "@/data/mathTerminaleGestion";
+import { mathTerminaleMathTechniquesChapters } from "@/data/mathTerminaleMathTechniques";
+import { mathTerminaleMathematiquesChapters } from "@/data/mathTerminaleMathematiques";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -161,6 +163,24 @@ const Cours = () => {
         } else if (profileData?.school_level === "terminale" && profileData?.filiere === "sciences") {
           // Load Terminale Sciences chapters
           staticChapters = mathTerminaleSciencesChapters.map((ch, index) => ({
+            id: ch.id,
+            title: `${ch.title} - ${ch.titleAr}`,
+            order_index: index,
+            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
+            lessons: ch.lessons,
+          }));
+        } else if (profileData?.school_level === "terminale" && profileData?.filiere === "math_techniques") {
+          // Load Terminale Math Techniques chapters
+          staticChapters = mathTerminaleMathTechniquesChapters.map((ch, index) => ({
+            id: ch.id,
+            title: `${ch.title} - ${ch.titleAr}`,
+            order_index: index,
+            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
+            lessons: ch.lessons,
+          }));
+        } else if (profileData?.school_level === "terminale" && profileData?.filiere === "mathematiques") {
+          // Load Terminale Mathématiques chapters
+          staticChapters = mathTerminaleMathematiquesChapters.map((ch, index) => ({
             id: ch.id,
             title: `${ch.title} - ${ch.titleAr}`,
             order_index: index,
