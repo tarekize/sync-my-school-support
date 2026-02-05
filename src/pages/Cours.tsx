@@ -13,6 +13,10 @@ import { mathTerminaleLettresChapters } from "@/data/mathTerminaleLettres";
 import { mathTerminaleGestionChapters } from "@/data/mathTerminaleGestion";
 import { mathTerminaleMathTechniquesChapters } from "@/data/mathTerminaleMathTechniques";
 import { mathTerminaleMathematiquesChapters } from "@/data/mathTerminaleMathematiques";
+import { mathCem4emeChapters } from "@/data/mathCem4eme";
+import { mathCem3emeChapters } from "@/data/mathCem3eme";
+import { mathCem2emeChapters } from "@/data/mathCem2eme";
+import { mathCem1ereChapters } from "@/data/mathCem1ere";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,7 +115,7 @@ const Cours = () => {
       // Use local static chapters for math based on school_level and filiere
       if (subjectId === "math") {
         let staticChapters: Chapter[] = [];
-        
+
         if (profileData?.school_level === "seconde") {
           const filiere = profileData?.filiere;
           const arabicFilieres = ["sciences", "math_techniques", "mathematiques"];
@@ -205,8 +209,35 @@ const Cours = () => {
             content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
             lessons: ch.lessons,
           }));
+        } else if (profileData?.school_level === "4eme_cem") {
+          // Load 4ème CEM chapters
+          staticChapters = mathCem4emeChapters.map((ch, index) => ({
+            id: ch.id,
+            title: `${ch.title} - ${ch.titleAr}`,
+            order_index: index,
+            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
+            lessons: ch.lessons,
+          }));
+        } else if (profileData?.school_level === "3eme_cem") {
+          // Load 3ème CEM chapters
+          staticChapters = mathCem3emeChapters.map((ch, index) => ({
+            id: ch.id,
+            title: `${ch.title} - ${ch.titleAr}`,
+            order_index: index,
+            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
+            lessons: ch.lessons,
+          }));
+        } else if (profileData?.school_level === "2eme_cem") {
+          // Load 2ème CEM chapters
+          staticChapters = mathCem2emeChapters.map((ch, index) => ({
+            id: ch.id,
+            title: `${ch.title} - ${ch.titleAr}`,
+            order_index: index,
+            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
+            lessons: ch.lessons,
+          }));
         }
-        
+
         setChapters(staticChapters);
         if (staticChapters.length > 0) {
           setActiveChapter(staticChapters[0]);
@@ -230,7 +261,7 @@ const Cours = () => {
 
   const handleMarkComplete = async () => {
     if (!activeChapter) return;
-    
+
     setProgress(prev => ({
       ...prev,
       [activeChapter.id]: !prev[activeChapter.id]
@@ -289,10 +320,10 @@ const Cours = () => {
     try {
       const { jsPDF } = await import("jspdf");
       const doc = new jsPDF();
-      
+
       doc.setFontSize(18);
       doc.text(activeChapter.title, 20, 20);
-      
+
       doc.setFontSize(12);
       const content = activeChapter.content?.replace(/<[^>]*>/g, '') || 'Contenu non disponible';
       const lines = doc.splitTextToSize(content, 170);
@@ -343,8 +374,8 @@ const Cours = () => {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <div 
-              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity" 
+            <div
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate("/liste-cours")}
             >
               <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
@@ -413,9 +444,9 @@ const Cours = () => {
               {Object.values(progress).filter(Boolean).length}/{chapters.length} chapitres terminés
             </span>
           </div>
-          <Progress 
-            value={(Object.values(progress).filter(Boolean).length / chapters.length) * 100} 
-            className="h-2" 
+          <Progress
+            value={(Object.values(progress).filter(Boolean).length / chapters.length) * 100}
+            className="h-2"
           />
         </div>
 
@@ -442,11 +473,10 @@ const Cours = () => {
         {!activeActivity && viewMode === "grid" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {chapters.map((chapter, index) => (
-              <Card 
+              <Card
                 key={chapter.id}
-                className={`cursor-pointer transition-all hover:shadow-lg ${
-                  progress[chapter.id] ? 'border-green-500/50 bg-green-500/5' : ''
-                }`}
+                className={`cursor-pointer transition-all hover:shadow-lg ${progress[chapter.id] ? 'border-green-500/50 bg-green-500/5' : ''
+                  }`}
                 onClick={() => {
                   setActiveChapter(chapter);
                   setActiveChapterIndex(index);
@@ -494,7 +524,7 @@ const Cours = () => {
                       <Download className="h-4 w-4 mr-2" />
                       PDF
                     </Button>
-                    <Button 
+                    <Button
                       variant={progress[activeChapter.id] ? "secondary" : "default"}
                       size="sm"
                       onClick={handleMarkComplete}
@@ -515,7 +545,7 @@ const Cours = () => {
                 <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
                   <div dangerouslySetInnerHTML={{ __html: activeChapter.content || "<p>Contenu non disponible</p>" }} />
                 </div>
-                
+
                 {/* Interactive lessons list */}
                 {activeChapter.lessons && activeChapter.lessons.length > 0 && (
                   <div className="mt-6 space-y-2">
@@ -541,7 +571,7 @@ const Cours = () => {
 
             {/* Activity cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card 
+              <Card
                 className="cursor-pointer hover:shadow-lg transition-all"
                 onClick={() => setActiveActivity("quiz")}
               >
@@ -556,7 +586,7 @@ const Cours = () => {
                 </CardContent>
               </Card>
 
-              <Card 
+              <Card
                 className="cursor-pointer hover:shadow-lg transition-all"
                 onClick={() => setActiveActivity("exercises")}
               >
@@ -571,7 +601,7 @@ const Cours = () => {
                 </CardContent>
               </Card>
 
-              <Card 
+              <Card
                 className="cursor-pointer hover:shadow-lg transition-all"
                 onClick={() => navigate(`/revision/${subjectId}`)}
               >
@@ -589,15 +619,15 @@ const Cours = () => {
 
             {/* Navigation */}
             <div className="flex justify-between">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => handleChapterChange("prev")}
                 disabled={chapters.findIndex(c => c.id === activeChapter.id) === 0}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Chapitre précédent
               </Button>
-              <Button 
+              <Button
                 onClick={() => handleChapterChange("next")}
                 disabled={chapters.findIndex(c => c.id === activeChapter.id) === chapters.length - 1}
               >
@@ -620,7 +650,7 @@ const Cours = () => {
       {/* Chat Panel */}
       {isChatOpen && (
         <div className="fixed bottom-24 right-6 w-96 h-[500px] z-50">
-          <ChatBot 
+          <ChatBot
             messages={chatMessages}
             setMessages={setChatMessages}
           />
