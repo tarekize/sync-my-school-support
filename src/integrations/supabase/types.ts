@@ -49,6 +49,124 @@ export type Database = {
           },
         ]
       }
+      chapters: {
+        Row: {
+          created_at: string
+          description: string | null
+          filiere_id: string | null
+          id: string
+          order_index: number
+          school_level: Database["public"]["Enums"]["school_level"]
+          subject: string
+          title: string
+          title_ar: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          filiere_id?: string | null
+          id?: string
+          order_index?: number
+          school_level: Database["public"]["Enums"]["school_level"]
+          subject?: string
+          title: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          filiere_id?: string | null
+          id?: string
+          order_index?: number
+          school_level?: Database["public"]["Enums"]["school_level"]
+          subject?: string
+          title?: string
+          title_ar?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapters_filiere_id_fkey"
+            columns: ["filiere_id"]
+            isOneToOne: false
+            referencedRelation: "filieres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      filieres: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+          name_ar: string | null
+          school_level: Database["public"]["Enums"]["school_level"]
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          name_ar?: string | null
+          school_level: Database["public"]["Enums"]["school_level"]
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          name_ar?: string | null
+          school_level?: Database["public"]["Enums"]["school_level"]
+        }
+        Relationships: []
+      }
+      lessons: {
+        Row: {
+          chapter_id: string
+          content: string | null
+          created_at: string
+          id: string
+          order_index: number
+          title: string
+          title_ar: string | null
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          chapter_id: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          order_index?: number
+          title: string
+          title_ar?: string | null
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          chapter_id?: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          order_index?: number
+          title?: string
+          title_ar?: string | null
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parent_child_links: {
         Row: {
           child_id: string

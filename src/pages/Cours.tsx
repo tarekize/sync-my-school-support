@@ -1,23 +1,10 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { courseService, Chapter as DBChapter, Lesson as DBLesson } from "@/services/courseService";
 import { ChapterMathQuiz } from "@/components/course/ChapterMathQuiz";
 import { ChapterMathExercises } from "@/components/course/ChapterMathExercises";
-import { mathSecondeChapters, getChapterContent, ChapterContent } from "@/data/mathSecondeChapters";
-import { mathPremiereTCSChapters } from "@/data/mathPremiereTCS";
-import { mathPremiereTCLChapters } from "@/data/mathPremiereTCL";
-import { mathSecondeChaptersAr } from "@/data/mathSecondeAr";
-import { mathSecondeLettresGestionChapters } from "@/data/mathSecondeLettresGestion";
-import { mathTerminaleSciencesChapters } from "@/data/mathTerminaleSciences";
-import { mathTerminaleLettresChapters } from "@/data/mathTerminaleLettres";
-import { mathTerminaleGestionChapters } from "@/data/mathTerminaleGestion";
-import { mathTerminaleMathTechniquesChapters } from "@/data/mathTerminaleMathTechniques";
-import { mathTerminaleMathematiquesChapters } from "@/data/mathTerminaleMathematiques";
-import { mathCem4emeChapters } from "@/data/mathCem4eme";
-import { mathCem3emeChapters } from "@/data/mathCem3eme";
-import { mathCem2emeChapters } from "@/data/mathCem2eme";
-import { mathCem1ereChapters } from "@/data/mathCem1ere";
-import { mathPrimaire5emeChapters } from "@/data/mathPrimaire5eme";
+import { getChapterContent, ChapterContent } from "@/data/mathSecondeChapters";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -113,154 +100,36 @@ const Cours = () => {
       setProfile(profileData as Profile | null);
       setSchoolLevel(profileData?.school_level || "");
 
-      // Use local static chapters for math based on school_level and filiere
-      if (subjectId === "math") {
-        let staticChapters: Chapter[] = [];
+      // Fetch chapters from database
+      if (subjectId && profileData?.school_level) {
+        const dbChapters = await courseService.getChaptersWithLessons(
+          profileData.school_level,
+          profileData.filiere,
+          subjectId
+        );
 
-        if (profileData?.school_level === "seconde") {
-          const filiere = profileData?.filiere;
-          const arabicFilieres = ["sciences", "math_techniques", "mathematiques"];
+        if (dbChapters.length > 0) {
+          // Map database chapters to component format
+          const mappedChapters: Chapter[] = dbChapters.map((ch) => ({
+            id: ch.id,
+            title: ch.title_ar ? `${ch.title} - ${ch.title_ar}` : ch.title,
+            order_index: ch.order_index,
+            content: `<h2>${ch.title_ar || ch.title}</h2>${ch.title_ar ? `<h3>${ch.title}</h3>` : ""}<p>${ch.description || `Ce chapitre contient ${ch.lessons.length} leçons.`}</p>`,
+            lessons: ch.lessons.map((l) => ({
+              id: l.id,
+              title: l.title,
+              titleAr: l.title_ar || l.title,
+            })),
+          }));
 
-          if (filiere === "lettres" || filiere === "gestion") {
-            staticChapters = mathSecondeLettresGestionChapters.map((ch, index) => ({
-              id: ch.id,
-              title: `${ch.title} - ${ch.titleAr}`,
-              order_index: index,
-              content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
-              lessons: ch.lessons,
-            }));
-          } else if (filiere && arabicFilieres.includes(filiere)) {
-            // Load Arabic curriculum for Seconde (Sciences, Math techniques, Mathématiques)
-            staticChapters = mathSecondeChaptersAr.map((ch, index) => ({
-              id: ch.id,
-              title: `${ch.title} - ${ch.titleAr}`,
-              order_index: index,
-              content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
-              lessons: ch.lessons,
-            }));
-          } else {
-            // Default French curriculum for Seconde
-            staticChapters = mathSecondeChapters.map((ch, index) => ({
-              id: ch.chapterId,
-              title: ch.chapterTitle,
-              order_index: index,
-              content: `<h2>${ch.chapterTitle}</h2><p>Ce chapitre contient ${ch.quizzes.length} questions de quiz et ${ch.exercises.length} exercices.</p>`,
-            }));
+          setChapters(mappedChapters);
+          if (mappedChapters.length > 0) {
+            setActiveChapter(mappedChapters[0]);
+            setActiveChapterIndex(0);
           }
-        } else if (profileData?.school_level === "premiere" && profileData?.filiere === "tronc_commun_scientifique") {
-          // Load Première TCS chapters
-          staticChapters = mathPremiereTCSChapters.map((ch, index) => ({
-            id: ch.id,
-            title: `${ch.title} - ${ch.titleAr}`,
-            order_index: index,
-            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
-            lessons: ch.lessons,
-          }));
-        } else if (profileData?.school_level === "premiere" && profileData?.filiere === "tronc_commun_lettres") {
-          // Load Première TCL chapters
-          staticChapters = mathPremiereTCLChapters.map((ch, index) => ({
-            id: ch.id,
-            title: `${ch.title} - ${ch.titleAr}`,
-            order_index: index,
-            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
-            lessons: ch.lessons,
-          }));
-        } else if (profileData?.school_level === "terminale" && profileData?.filiere === "sciences") {
-          // Load Terminale Sciences chapters
-          staticChapters = mathTerminaleSciencesChapters.map((ch, index) => ({
-            id: ch.id,
-            title: `${ch.title} - ${ch.titleAr}`,
-            order_index: index,
-            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
-            lessons: ch.lessons,
-          }));
-        } else if (profileData?.school_level === "terminale" && profileData?.filiere === "math_techniques") {
-          // Load Terminale Math Techniques chapters
-          staticChapters = mathTerminaleMathTechniquesChapters.map((ch, index) => ({
-            id: ch.id,
-            title: `${ch.title} - ${ch.titleAr}`,
-            order_index: index,
-            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
-            lessons: ch.lessons,
-          }));
-        } else if (profileData?.school_level === "terminale" && profileData?.filiere === "mathematiques") {
-          // Load Terminale Mathématiques chapters
-          staticChapters = mathTerminaleMathematiquesChapters.map((ch, index) => ({
-            id: ch.id,
-            title: `${ch.title} - ${ch.titleAr}`,
-            order_index: index,
-            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
-            lessons: ch.lessons,
-          }));
-        } else if (profileData?.school_level === "terminale" && profileData?.filiere === "lettres") {
-          // Load Terminale Lettres chapters
-          staticChapters = mathTerminaleLettresChapters.map((ch, index) => ({
-            id: ch.id,
-            title: `${ch.title} - ${ch.titleAr}`,
-            order_index: index,
-            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
-            lessons: ch.lessons,
-          }));
-        } else if (profileData?.school_level === "terminale" && profileData?.filiere === "gestion") {
-          // Load Terminale Gestion chapters
-          staticChapters = mathTerminaleGestionChapters.map((ch, index) => ({
-            id: ch.id,
-            title: `${ch.title} - ${ch.titleAr}`,
-            order_index: index,
-            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
-            lessons: ch.lessons,
-          }));
-        } else if (profileData?.school_level === "4eme_cem") {
-          // Load 4ème CEM chapters
-          staticChapters = mathCem4emeChapters.map((ch, index) => ({
-            id: ch.id,
-            title: `${ch.title} - ${ch.titleAr}`,
-            order_index: index,
-            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
-            lessons: ch.lessons,
-          }));
-        } else if (profileData?.school_level === "3eme_cem") {
-          // Load 3ème CEM chapters
-          staticChapters = mathCem3emeChapters.map((ch, index) => ({
-            id: ch.id,
-            title: `${ch.title} - ${ch.titleAr}`,
-            order_index: index,
-            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
-            lessons: ch.lessons,
-          }));
-        } else if (profileData?.school_level === "2eme_cem") {
-          // Load 2ème CEM chapters
-          staticChapters = mathCem2emeChapters.map((ch, index) => ({
-            id: ch.id,
-            title: `${ch.title} - ${ch.titleAr}`,
-            order_index: index,
-            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
-            lessons: ch.lessons,
-          }));
-        } else if (profileData?.school_level === "1ere_cem") {
-          // Load 1ère CEM chapters
-          staticChapters = mathCem1ereChapters.map((ch, index) => ({
-            id: ch.id,
-            title: `${ch.title} - ${ch.titleAr}`,
-            order_index: index,
-            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
-            lessons: ch.lessons,
-          }));
-        } else if (profileData?.school_level === "5eme_primaire") {
-          // Load 5ème Primaire chapters
-          staticChapters = mathPrimaire5emeChapters.map((ch, index) => ({
-            id: ch.id,
-            title: `${ch.title} - ${ch.titleAr}`,
-            order_index: index,
-            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
-            lessons: ch.lessons,
-          }));
-        }
-
-        setChapters(staticChapters);
-        if (staticChapters.length > 0) {
-          setActiveChapter(staticChapters[0]);
-          setActiveChapterIndex(0);
+        } else {
+          // No chapters in database
+          setChapters([]);
         }
       } else {
         setChapters([]);
