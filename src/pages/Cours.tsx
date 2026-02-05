@@ -10,6 +10,7 @@ import { mathSecondeChaptersAr } from "@/data/mathSecondeAr";
 import { mathSecondeLettresGestionChapters } from "@/data/mathSecondeLettresGestion";
 import { mathTerminaleSciencesChapters } from "@/data/mathTerminaleSciences";
 import { mathTerminaleLettresChapters } from "@/data/mathTerminaleLettres";
+import { mathTerminaleGestionChapters } from "@/data/mathTerminaleGestion";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -169,6 +170,15 @@ const Cours = () => {
         } else if (profileData?.school_level === "terminale" && profileData?.filiere === "lettres") {
           // Load Terminale Lettres chapters
           staticChapters = mathTerminaleLettresChapters.map((ch, index) => ({
+            id: ch.id,
+            title: `${ch.title} - ${ch.titleAr}`,
+            order_index: index,
+            content: `<h2>${ch.titleAr}</h2><h3>${ch.title}</h3><p>Ce chapitre contient ${ch.lessons.length} leçons.</p>`,
+            lessons: ch.lessons,
+          }));
+        } else if (profileData?.school_level === "terminale" && profileData?.filiere === "gestion") {
+          // Load Terminale Gestion chapters
+          staticChapters = mathTerminaleGestionChapters.map((ch, index) => ({
             id: ch.id,
             title: `${ch.title} - ${ch.titleAr}`,
             order_index: index,
