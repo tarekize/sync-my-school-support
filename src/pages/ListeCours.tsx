@@ -78,6 +78,7 @@ const ListeCours = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPedago, setIsPedago] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(searchParams.get("niveau"));
   const [filieres, setFilieres] = useState<{ code: string; name: string; name_ar: string | null }[]>([]);
   const [loadingFilieres, setLoadingFilieres] = useState(false);
@@ -131,16 +132,27 @@ const ListeCours = () => {
 
   const checkAdminRole = async (userId: string) => {
     try {
-      const { data } = await supabase
+      // Check for admin role
+      const { data: adminData } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
         .eq("role", "admin")
         .maybeSingle();
 
-      setIsAdmin(!!data);
+      setIsAdmin(!!adminData);
+
+      // Check for pédago role
+      const { data: pedagoData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "pedago")
+        .maybeSingle();
+
+      setIsPedago(!!pedagoData);
     } catch (error) {
-      console.error("Error checking admin role:", error);
+      console.error("Error checking roles:", error);
     }
   };
 
@@ -173,7 +185,7 @@ const ListeCours = () => {
   };
 
   const handleLevelSelect = async (levelId: string) => {
-    if (isAdmin && levelsWithFilieres.includes(levelId)) {
+    if ((isAdmin || isPedago) && levelsWithFilieres.includes(levelId)) {
       // Show filiere selection for premiere/seconde/terminale
       setSelectedLevel(levelId);
       setSearchParams({ niveau: levelId });
@@ -190,7 +202,7 @@ const ListeCours = () => {
       } finally {
         setLoadingFilieres(false);
       }
-    } else if (isAdmin) {
+    } else if (isAdmin || isPedago) {
       // No filiere needed, go directly to course
       navigate(`/cours/math?niveau=${levelId}`);
     } else {
@@ -229,8 +241,8 @@ const ListeCours = () => {
 
   const fullName = getFullName(profile);
 
-  // Admin view - Level Selection
-  if (isAdmin && !selectedLevel) {
+  // Admin/Pédago view - Level Selection
+  if ((isAdmin || isPedago) && !selectedLevel) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
         {/* Header */}
@@ -361,7 +373,7 @@ const ListeCours = () => {
   if (isAdmin && selectedLevel) {
     const levelName = schoolLevels.find(l => l.id === selectedLevel)?.name || selectedLevel;
     const levelColor = schoolLevels.find(l => l.id === selectedLevel)?.color || "#8B5CF6";
-    
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
         <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
@@ -570,9 +582,8 @@ const ListeCours = () => {
                   return (
                     <Card
                       key={subject.id}
-                      className={`group transition-all duration-300 hover:shadow-2xl border-2 hover:border-primary/50 animate-fade-in overflow-hidden ${
-                        subject.available ? "cursor-pointer" : "opacity-60 cursor-not-allowed"
-                      }`}
+                      className={`group transition-all duration-300 hover:shadow-2xl border-2 hover:border-primary/50 animate-fade-in overflow-hidden ${subject.available ? "cursor-pointer" : "opacity-60 cursor-not-allowed"
+                        }`}
                       style={{
                         animationDelay: `${index * 50}ms`,
                         backgroundColor: `${subject.color}15`,
