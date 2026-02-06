@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { courseService, Chapter as DBChapter, Lesson as DBLesson } from "@/services/courseService";
 import { ChapterMathQuiz } from "@/components/course/ChapterMathQuiz";
@@ -59,6 +59,9 @@ interface Chapter {
 
 const Cours = () => {
   const { subjectId } = useParams();
+  const [searchParams] = useSearchParams();
+  const adminNiveau = searchParams.get("niveau");
+  const adminFiliere = searchParams.get("filiere");
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -98,13 +101,17 @@ const Cours = () => {
         .single();
 
       setProfile(profileData as Profile | null);
-      setSchoolLevel(profileData?.school_level || "");
+
+      // Use admin query params if present, otherwise use profile data
+      const effectiveLevel = adminNiveau || profileData?.school_level || "";
+      const effectiveFiliere = adminFiliere || (adminNiveau ? null : profileData?.filiere) || null;
+      setSchoolLevel(effectiveLevel);
 
       // Fetch chapters from database
-      if (subjectId && profileData?.school_level) {
+      if (subjectId && effectiveLevel) {
         const dbChapters = await courseService.getChaptersWithLessons(
-          profileData.school_level,
-          profileData.filiere,
+          effectiveLevel as any,
+          effectiveFiliere,
           subjectId
         );
 
