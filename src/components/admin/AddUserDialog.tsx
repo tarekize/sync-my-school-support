@@ -215,6 +215,7 @@ export function AddUserDialog({ onUserAdded }: AddUserDialogProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Administrateur</SelectItem>
+                  <SelectItem value="pedago">Pédago</SelectItem>
                   <SelectItem value="parent">Parent</SelectItem>
                   <SelectItem value="student">Élève</SelectItem>
                 </SelectContent>

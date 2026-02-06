@@ -48,6 +48,7 @@ BEGIN
     WHEN 'student' THEN 'student'::public.app_role
     WHEN 'parent' THEN 'parent'::public.app_role
     WHEN 'admin' THEN 'admin'::public.app_role
+    WHEN 'pedago' THEN 'pedago'::public.app_role
     ELSE NULL
   END;
 

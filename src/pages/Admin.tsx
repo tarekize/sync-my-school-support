@@ -80,8 +80,18 @@ export default function Admin() {
   const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
 
   // Separate users by role
+  const pedagos = users.filter((user) => getPrimaryRole(user) === "pedago");
   const parents = users.filter((user) => getPrimaryRole(user) === "parent");
   const students = users.filter((user) => getPrimaryRole(user) === "student");
+
+  // Filter pedagos
+  const filteredPedagos = pedagos.filter((user) => {
+    const fullName = getFullName(user);
+    return (
+      fullName.toLowerCase().includes(searchQueryParents.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchQueryParents.toLowerCase())
+    );
+  });
 
   // Filter parents
   const filteredParents = parents.filter((user) => {
@@ -189,6 +199,10 @@ export default function Admin() {
               <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-background">
                 <LayoutDashboard className="h-4 w-4" />
                 Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="pedagos" className="flex items-center gap-2 data-[state=active]:bg-background">
+                <Shield className="h-4 w-4" />
+                Pédagos ({pedagos.length})
               </TabsTrigger>
               <TabsTrigger value="parents" className="flex items-center gap-2 data-[state=active]:bg-background">
                 <User className="h-4 w-4" />

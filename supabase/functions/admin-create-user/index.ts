@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     // Verify the requesting user is authenticated
     const token = authHeader.replace('Bearer ', '')
     const { data: { user: requestingUser }, error: userError } = await supabaseAdmin.auth.getUser(token)
-    
+
     if (userError || !requestingUser) {
       throw new Error('Unauthorized')
     }
@@ -57,9 +57,10 @@ Deno.serve(async (req) => {
     }
 
     // Validate role
-    const validRoles = ['admin', 'parent', 'student']
+    const validRoles = ['admin', 'pedago', 'parent', 'student']
+
     if (!validRoles.includes(role)) {
-      throw new Error('Invalid role. Must be admin, parent, or student')
+      throw new Error('Invalid role. Must be admin, pedago, parent, or student')
     }
 
     console.log(`Admin ${requestingUser.id} is creating user with email: ${email}, role: ${role}`)
@@ -85,10 +86,10 @@ Deno.serve(async (req) => {
     console.log(`Successfully created user: ${newUser.user.id}`)
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: 'User created successfully',
-        userId: newUser.user.id 
+        userId: newUser.user.id
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
