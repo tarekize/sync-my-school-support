@@ -341,6 +341,72 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
+          {/* Pedagos Tab */}
+          <TabsContent value="pedagos">
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="border-b bg-muted/30">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-purple-500/10">
+                      <Shield className="h-5 w-5 text-purple-500" />
+                    </div>
+                    <div>
+                      <CardTitle>Gestion des Pédagos</CardTitle>
+                      <CardDescription>
+                        {filteredPedagos.length} pédago(s) affiché(s)
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Rechercher un pédago..."
+                      value={searchQueryParents}
+                      onChange={(e) => setSearchQueryParents(e.target.value)}
+                      className="pl-9 w-full sm:w-64"
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <TableHead>Pédago</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead>Inscription</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredPedagos.map((user) => (
+                        <UserRow
+                          key={user.id}
+                          user={user}
+                          onToggleStatus={() =>
+                            toggleUserStatus(user.id, !user.is_active)
+                          }
+                          onDelete={() => {
+                            setUserToDelete(user);
+                            setDeleteDialogOpen(true);
+                          }}
+                        />
+                      ))}
+                      {filteredPedagos.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            Aucun pédago trouvé
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Parents Tab */}
           <TabsContent value="parents">
             <Card className="border-0 shadow-lg">
