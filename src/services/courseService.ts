@@ -165,4 +165,190 @@ export const courseService = {
 
     return data;
   },
+
+  /**
+   * Créer un nouveau chapitre
+   */
+  async createChapter(
+    schoolLevel: SchoolLevel,
+    filiereCode: string | null,
+    subject: string,
+    title: string,
+    titleAr: string | null,
+    description: string | null
+  ): Promise<Chapter | null> {
+    // Trouver l'ID de la filière si spécifiée
+    let filiereId = null;
+    if (filiereCode) {
+      const { data: filiereData } = await supabase
+        .from("filieres")
+        .select("id")
+        .eq("code", filiereCode)
+        .eq("school_level", schoolLevel)
+        .maybeSingle();
+      filiereId = filiereData?.id || null;
+    }
+
+    // Trouver le prochain order_index
+    const { data: maxOrder } = await supabase
+      .from("chapters")
+      .select("order_index")
+      .eq("school_level", schoolLevel)
+      .eq("subject", subject)
+      .eq("filiere_id", filiereId)
+      .order("order_index", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextOrder = (maxOrder?.order_index || 0) + 1;
+
+    const { data, error } = await supabase
+      .from("chapters")
+      .insert({
+        school_level: schoolLevel,
+        filiere_id: filiereId,
+        subject,
+        title,
+        title_ar: titleAr,
+        description,
+        order_index: nextOrder,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating chapter:", error);
+      return null;
+    }
+
+    return {
+      ...data,
+      lessons: [],
+    };
+  },
+
+  /**
+   * Mettre à jour un chapitre
+   */
+  async updateChapter(
+    chapterId: string,
+    updates: {
+      title?: string;
+      title_ar?: string | null;
+      description?: string | null;
+    }
+  ): Promise<boolean> {
+    const { error } = await supabase
+      .from("chapters")
+      .update(updates)
+      .eq("id", chapterId);
+
+    if (error) {
+      console.error("Error updating chapter:", error);
+      return false;
+    }
+
+    return true;
+  },
+
+  /**
+   * Supprimer un chapitre
+   */
+  async deleteChapter(chapterId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from("chapters")
+      .delete()
+      .eq("id", chapterId);
+
+    if (error) {
+      console.error("Error deleting chapter:", error);
+      return false;
+    }
+
+    return true;
+  },
+
+  /**
+   * Créer une nouvelle leçon
+   */
+  async createLesson(
+    chapterId: string,
+    title: string,
+    titleAr: string | null,
+    content: string | null,
+    videoUrl: string | null
+  ): Promise<Lesson | null> {
+    // Trouver le prochain order_index
+    const { data: maxOrder } = await supabase
+      .from("lessons")
+      .select("order_index")
+      .eq("chapter_id", chapterId)
+      .order("order_index", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextOrder = (maxOrder?.order_index || 0) + 1;
+
+    const { data, error } = await supabase
+      .from("lessons")
+      .insert({
+        chapter_id: chapterId,
+        title,
+        title_ar: titleAr,
+        content,
+        video_url: videoUrl,
+        order_index: nextOrder,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating lesson:", error);
+      return null;
+    }
+
+    return data;
+  },
+
+  /**
+   * Mettre à jour une leçon
+   */
+  async updateLesson(
+    lessonId: string,
+    updates: {
+      title?: string;
+      title_ar?: string | null;
+      content?: string | null;
+      video_url?: string | null;
+    }
+  ): Promise<boolean> {
+    const { error } = await supabase
+      .from("lessons")
+      .update(updates)
+      .eq("id", lessonId);
+
+    if (error) {
+      console.error("Error updating lesson:", error);
+      return false;
+    }
+
+    return true;
+  },
+
+  /**
+   * Supprimer une leçon
+   */
+  async deleteLesson(lessonId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from("lessons")
+      .delete()
+      .eq("id", lessonId);
+
+    if (error) {
+      console.error("Error deleting lesson:", error);
+      return false;
+    }
+
+    return true;
+  },
 };

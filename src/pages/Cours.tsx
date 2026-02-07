@@ -8,7 +8,29 @@ import { getChapterContent, ChapterContent } from "@/data/mathSecondeChapters";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, GraduationCap, LogOut, User as UserIcon, MessageCircle, X, BookOpen, Play, PenTool, Brain, Download, Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, GraduationCap, LogOut, User as UserIcon, MessageCircle, X, BookOpen, Play, PenTool, Brain, Download, Check, Plus, Edit, Trash2 } from "lucide-react";
 import ChatBot from "@/components/ChatBot";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -27,6 +49,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Static subject data
 const staticSubjects: Record<string, { id: string; name: string; icon: string }> = {
@@ -76,6 +99,32 @@ const Cours = () => {
   const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string; }[]>([]);
   const [activeActivity, setActiveActivity] = useState<string | null>(null);
 
+  // Pedago management states
+  const [isPedago, setIsPedago] = useState(false);
+  const [createChapterDialogOpen, setCreateChapterDialogOpen] = useState(false);
+  const [editChapterDialogOpen, setEditChapterDialogOpen] = useState(false);
+  const [deleteChapterDialogOpen, setDeleteChapterDialogOpen] = useState(false);
+  const [createLessonDialogOpen, setCreateLessonDialogOpen] = useState(false);
+  const [editLessonDialogOpen, setEditLessonDialogOpen] = useState(false);
+  const [deleteLessonDialogOpen, setDeleteLessonDialogOpen] = useState(false);
+  const [chapterToEdit, setChapterToEdit] = useState<Chapter | null>(null);
+  const [lessonToEdit, setLessonToEdit] = useState<Lesson | null>(null);
+  const [chapterToDelete, setChapterToDelete] = useState<Chapter | null>(null);
+  const [lessonToDelete, setLessonToDelete] = useState<Lesson | null>(null);
+
+  // Form states
+  const [chapterForm, setChapterForm] = useState({
+    title: "",
+    titleAr: "",
+    description: "",
+  });
+  const [lessonForm, setLessonForm] = useState({
+    title: "",
+    titleAr: "",
+    content: "",
+    videoUrl: "",
+  });
+
   const subject = subjectId ? staticSubjects[subjectId] || { id: subjectId, name: subjectId, icon: "📖" } : null;
 
   useEffect(() => {
@@ -84,18 +133,14 @@ const Cours = () => {
     }
   }, [subjectId]);
 
-  // Add realtime subscriptions for chapters and lessons updates (for admin/pedago)
+  // Add realtime subscriptions for chapters and lessons updates (for all users)
   useEffect(() => {
-    if (!adminNiveau) return;
-
     const channel = supabase
       .channel('chapters-lessons-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chapters' }, (payload) => {
-        console.log('Chapter change:', payload);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chapters' }, () => {
         fetchCourse();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'lessons' }, (payload) => {
-        console.log('Lesson change:', payload);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lessons' }, () => {
         fetchCourse();
       })
       .subscribe();
@@ -122,6 +167,16 @@ const Cours = () => {
         .single();
 
       setProfile(profileData as Profile | null);
+
+      // Check if user is pedago
+      const { data: pedagoData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "pedago")
+        .maybeSingle();
+
+      setIsPedago(!!pedagoData);
 
       // Use admin query params if present, otherwise use profile data
       const effectiveLevel = adminNiveau || profileData?.school_level || "";
@@ -261,6 +316,199 @@ const Cours = () => {
     }
   };
 
+  // Pedago CRUD handlers
+  const handleCreateChapter = async () => {
+    if (!schoolLevel || !subjectId) return;
+
+    const chapter = await courseService.createChapter(
+      schoolLevel as any,
+      adminFiliere,
+      subjectId,
+      chapterForm.title,
+      chapterForm.titleAr,
+      chapterForm.description
+    );
+
+    if (chapter) {
+      toast({
+        title: "Chapitre créé",
+        description: "Le chapitre a été créé avec succès",
+      });
+      setCreateChapterDialogOpen(false);
+      setChapterForm({ title: "", titleAr: "", description: "" });
+      fetchCourse();
+    } else {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer le chapitre",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateChapter = async () => {
+    if (!chapterToEdit) return;
+
+    const success = await courseService.updateChapter(chapterToEdit.id, {
+      title: chapterForm.title,
+      title_ar: chapterForm.titleAr,
+      description: chapterForm.description,
+    });
+
+    if (success) {
+      toast({
+        title: "Chapitre modifié",
+        description: "Le chapitre a été modifié avec succès",
+      });
+      setEditChapterDialogOpen(false);
+      setChapterToEdit(null);
+      setChapterForm({ title: "", titleAr: "", description: "" });
+      fetchCourse();
+    } else {
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier le chapitre",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteChapter = async () => {
+    if (!chapterToDelete) return;
+
+    const success = await courseService.deleteChapter(chapterToDelete.id);
+
+    if (success) {
+      toast({
+        title: "Chapitre supprimé",
+        description: "Le chapitre a été supprimé avec succès",
+      });
+      setDeleteChapterDialogOpen(false);
+      setChapterToDelete(null);
+      fetchCourse();
+    } else {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le chapitre",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCreateLesson = async () => {
+    if (!activeChapter) return;
+
+    const lesson = await courseService.createLesson(
+      activeChapter.id,
+      lessonForm.title,
+      lessonForm.titleAr,
+      lessonForm.content,
+      lessonForm.videoUrl
+    );
+
+    if (lesson) {
+      toast({
+        title: "Leçon créée",
+        description: "La leçon a été créée avec succès",
+      });
+      setCreateLessonDialogOpen(false);
+      setLessonForm({ title: "", titleAr: "", content: "", videoUrl: "" });
+      fetchCourse();
+    } else {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer la leçon",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateLesson = async () => {
+    if (!lessonToEdit) return;
+
+    const success = await courseService.updateLesson(lessonToEdit.id, {
+      title: lessonForm.title,
+      title_ar: lessonForm.titleAr,
+      content: lessonForm.content,
+      video_url: lessonForm.videoUrl,
+    });
+
+    if (success) {
+      toast({
+        title: "Leçon modifiée",
+        description: "La leçon a été modifiée avec succès",
+      });
+      setEditLessonDialogOpen(false);
+      setLessonToEdit(null);
+      setLessonForm({ title: "", titleAr: "", content: "", videoUrl: "" });
+      fetchCourse();
+    } else {
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier la leçon",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteLesson = async () => {
+    if (!lessonToDelete) return;
+
+    const success = await courseService.deleteLesson(lessonToDelete.id);
+
+    if (success) {
+      toast({
+        title: "Leçon supprimée",
+        description: "La leçon a été supprimée avec succès",
+      });
+      setDeleteLessonDialogOpen(false);
+      setLessonToDelete(null);
+      fetchCourse();
+    } else {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer la leçon",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openEditChapterDialog = (chapter: Chapter) => {
+    // Find the original chapter data from chapters array
+    const originalChapter = chapters.find(c => c.id === chapter.id);
+    if (!originalChapter) return;
+
+    // Extract title and titleAr from the original data
+    // Since chapters are mapped with title = title_ar ? `${title} - ${title_ar}` : title
+    // We need to reverse this for editing
+    const titleParts = originalChapter.title.split(' - ');
+    const title = titleParts[0];
+    const titleAr = titleParts.length > 1 ? titleParts[1] : '';
+
+    setChapterToEdit(originalChapter);
+    setChapterForm({
+      title,
+      titleAr,
+      description: originalChapter.content.replace(/<[^>]*>/g, '').split('\n').filter(line => line.trim()).join('\n') || '',
+    });
+    setEditChapterDialogOpen(true);
+  };
+
+  const openEditLessonDialog = async (lesson: Lesson) => {
+    // Fetch full lesson data
+    const fullLesson = await courseService.getLessonById(lesson.id);
+    if (!fullLesson) return;
+
+    setLessonToEdit(lesson);
+    setLessonForm({
+      title: fullLesson.title,
+      titleAr: fullLesson.title_ar || fullLesson.title,
+      content: fullLesson.content || "",
+      videoUrl: fullLesson.video_url || "",
+    });
+    setEditLessonDialogOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -387,36 +635,125 @@ const Cours = () => {
 
         {/* Grid view - Chapter selection */}
         {!activeActivity && viewMode === "grid" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {chapters.map((chapter, index) => (
-              <Card
-                key={chapter.id}
-                className={`cursor-pointer transition-all hover:shadow-lg ${progress[chapter.id] ? 'border-green-500/50 bg-green-500/5' : ''
-                  }`}
-                onClick={() => {
-                  setActiveChapter(chapter);
-                  setActiveChapterIndex(index);
-                  setViewMode("content");
-                }}
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
-                      {index + 1}
-                    </span>
-                    {chapter.title}
-                    {progress[chapter.id] && (
-                      <Check className="h-5 w-5 text-green-500 ml-auto" />
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {chapter.content?.replace(/<[^>]*>/g, '').substring(0, 100)}...
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="space-y-6">
+            {/* Pedago management header */}
+            {isPedago && (
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold">Gestion des chapitres</h2>
+                <Dialog open={createChapterDialogOpen} onOpenChange={setCreateChapterDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nouveau chapitre
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Créer un nouveau chapitre</DialogTitle>
+                      <DialogDescription>
+                        Ajoutez un nouveau chapitre à ce cours.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="chapter-title">Titre (Français)</Label>
+                        <Input
+                          id="chapter-title"
+                          value={chapterForm.title}
+                          onChange={(e) => setChapterForm(prev => ({ ...prev, title: e.target.value }))}
+                          placeholder="Titre du chapitre"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="chapter-title-ar">Titre (Arabe)</Label>
+                        <Input
+                          id="chapter-title-ar"
+                          value={chapterForm.titleAr}
+                          onChange={(e) => setChapterForm(prev => ({ ...prev, titleAr: e.target.value }))}
+                          placeholder="العنوان بالعربية"
+                          dir="rtl"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="chapter-description">Description</Label>
+                        <Textarea
+                          id="chapter-description"
+                          value={chapterForm.description}
+                          onChange={(e) => setChapterForm(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Description du chapitre"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setCreateChapterDialogOpen(false)}>
+                        Annuler
+                      </Button>
+                      <Button onClick={handleCreateChapter}>
+                        Créer
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {chapters.map((chapter, index) => (
+                <Card
+                  key={chapter.id}
+                  className={`cursor-pointer transition-all hover:shadow-lg ${progress[chapter.id] ? 'border-green-500/50 bg-green-500/5' : ''
+                    }`}
+                  onClick={() => {
+                    setActiveChapter(chapter);
+                    setActiveChapterIndex(index);
+                    setViewMode("content");
+                  }}
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
+                        {index + 1}
+                      </span>
+                      {chapter.title}
+                      {progress[chapter.id] && (
+                        <Check className="h-5 w-5 text-green-500 ml-auto" />
+                      )}
+                      {isPedago && (
+                        <div className="ml-auto flex gap-1" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditChapterDialog(chapter);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setChapterToDelete(chapter);
+                              setDeleteChapterDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {chapter.content?.replace(/<[^>]*>/g, '').substring(0, 100)}...
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
 
@@ -436,6 +773,26 @@ const Cours = () => {
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-2xl">{activeChapter.title}</CardTitle>
                   <div className="flex gap-2">
+                    {isPedago && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditChapterDialog(activeChapter)}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Modifier chapitre
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setChapterToDelete(activeChapter)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Supprimer chapitre
+                        </Button>
+                      </>
+                    )}
                     <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
                       <Download className="h-4 w-4 mr-2" />
                       PDF
@@ -463,13 +820,82 @@ const Cours = () => {
                 </div>
 
                 {/* Interactive lessons list */}
-                {activeChapter.lessons && activeChapter.lessons.length > 0 && (
-                  <div className="mt-6 space-y-2">
-                    <h3 className="text-lg font-semibold mb-4">الدروس - Leçons</h3>
-                    {activeChapter.lessons.map((lesson, idx) => (
+                <div className="mt-6 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold">الدروس - Leçons</h3>
+                    {isPedago && (
+                      <Dialog open={createLessonDialogOpen} onOpenChange={setCreateLessonDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button size="sm">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Nouvelle leçon
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Créer une nouvelle leçon</DialogTitle>
+                            <DialogDescription>
+                              Ajoutez une nouvelle leçon à ce chapitre.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="lesson-title">Titre (Français)</Label>
+                              <Input
+                                id="lesson-title"
+                                value={lessonForm.title}
+                                onChange={(e) => setLessonForm(prev => ({ ...prev, title: e.target.value }))}
+                                placeholder="Titre de la leçon"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="lesson-title-ar">Titre (Arabe)</Label>
+                              <Input
+                                id="lesson-title-ar"
+                                value={lessonForm.titleAr}
+                                onChange={(e) => setLessonForm(prev => ({ ...prev, titleAr: e.target.value }))}
+                                placeholder="العنوان بالعربية"
+                                dir="rtl"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="lesson-content">Contenu</Label>
+                              <Textarea
+                                id="lesson-content"
+                                value={lessonForm.content}
+                                onChange={(e) => setLessonForm(prev => ({ ...prev, content: e.target.value }))}
+                                placeholder="Contenu de la leçon"
+                                rows={4}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="lesson-video">URL Vidéo (optionnel)</Label>
+                              <Input
+                                id="lesson-video"
+                                value={lessonForm.videoUrl}
+                                onChange={(e) => setLessonForm(prev => ({ ...prev, videoUrl: e.target.value }))}
+                                placeholder="https://..."
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setCreateLessonDialogOpen(false)}>
+                              Annuler
+                            </Button>
+                            <Button onClick={handleCreateLesson}>
+                              Créer
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
+
+                  {activeChapter.lessons && activeChapter.lessons.length > 0 ? (
+                    activeChapter.lessons.map((lesson, idx) => (
                       <div
                         key={lesson.id}
-                        className="w-full text-right p-4 border rounded-lg hover:bg-accent/10 transition-colors cursor-pointer flex items-center gap-3"
+                        className="w-full text-right p-4 border rounded-lg hover:bg-accent/10 transition-colors flex items-center gap-3"
                       >
                         <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold shrink-0">
                           {idx + 1}
@@ -478,10 +904,39 @@ const Cours = () => {
                           <p className="font-medium text-base">{lesson.titleAr}</p>
                           <p className="text-sm text-muted-foreground">{lesson.title}</p>
                         </div>
+                        {isPedago && (
+                          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditLessonDialog(lesson);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLessonToDelete(lesson);
+                                setDeleteLessonDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">
+                      Aucune leçon disponible pour ce chapitre.
+                    </p>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
@@ -572,6 +1027,157 @@ const Cours = () => {
           />
         </div>
       )}
+
+      {/* Edit Chapter Dialog */}
+      <Dialog open={editChapterDialogOpen} onOpenChange={setEditChapterDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier le chapitre</DialogTitle>
+            <DialogDescription>
+              Modifiez les informations du chapitre.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-chapter-title">Titre (Français)</Label>
+              <Input
+                id="edit-chapter-title"
+                value={chapterForm.title}
+                onChange={(e) => setChapterForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Titre du chapitre"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-chapter-title-ar">Titre (Arabe)</Label>
+              <Input
+                id="edit-chapter-title-ar"
+                value={chapterForm.titleAr}
+                onChange={(e) => setChapterForm(prev => ({ ...prev, titleAr: e.target.value }))}
+                placeholder="العنوان بالعربية"
+                dir="rtl"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-chapter-description">Description</Label>
+              <Textarea
+                id="edit-chapter-description"
+                value={chapterForm.description}
+                onChange={(e) => setChapterForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Description du chapitre"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditChapterDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleUpdateChapter}>
+              Modifier
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Chapter Dialog */}
+      <AlertDialog open={deleteChapterDialogOpen} onOpenChange={setDeleteChapterDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer le chapitre</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce chapitre ? Cette action est irréversible et supprimera également toutes les leçons associées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setChapterToDelete(null)}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteChapter} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Lesson Dialog */}
+      <Dialog open={editLessonDialogOpen} onOpenChange={setEditLessonDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier la leçon</DialogTitle>
+            <DialogDescription>
+              Modifiez les informations de la leçon.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-lesson-title">Titre (Français)</Label>
+              <Input
+                id="edit-lesson-title"
+                value={lessonForm.title}
+                onChange={(e) => setLessonForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Titre de la leçon"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-lesson-title-ar">Titre (Arabe)</Label>
+              <Input
+                id="edit-lesson-title-ar"
+                value={lessonForm.titleAr}
+                onChange={(e) => setLessonForm(prev => ({ ...prev, titleAr: e.target.value }))}
+                placeholder="العنوان بالعربية"
+                dir="rtl"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-lesson-content">Contenu</Label>
+              <Textarea
+                id="edit-lesson-content"
+                value={lessonForm.content}
+                onChange={(e) => setLessonForm(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="Contenu de la leçon"
+                rows={4}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-lesson-video">URL Vidéo (optionnel)</Label>
+              <Input
+                id="edit-lesson-video"
+                value={lessonForm.videoUrl}
+                onChange={(e) => setLessonForm(prev => ({ ...prev, videoUrl: e.target.value }))}
+                placeholder="https://..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditLessonDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleUpdateLesson}>
+              Modifier
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Lesson Dialog */}
+      <AlertDialog open={deleteLessonDialogOpen} onOpenChange={setDeleteLessonDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer la leçon</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette leçon ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setLessonToDelete(null)}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteLesson} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

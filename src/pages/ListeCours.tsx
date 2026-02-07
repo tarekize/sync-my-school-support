@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChangePasswordButton } from "@/components/ChangePasswordButton";
+import Footer from "@/components/Footer";
 
 interface Profile {
   id: string;
