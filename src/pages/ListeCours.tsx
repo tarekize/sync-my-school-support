@@ -369,8 +369,8 @@ const ListeCours = () => {
     );
   }
 
-  // Admin view - Filiere selection for selected level
-  if (isAdmin && selectedLevel) {
+  // Admin/Pédago view - Filiere selection for selected level
+  if ((isAdmin || isPedago) && selectedLevel) {
     const levelName = schoolLevels.find(l => l.id === selectedLevel)?.name || selectedLevel;
     const levelColor = schoolLevels.find(l => l.id === selectedLevel)?.color || "#8B5CF6";
 

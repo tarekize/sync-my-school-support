@@ -46,7 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .maybeSingle();
 
           // Si pas de rôle et qu'on n'est pas déjà sur la page de complétion
-          if (!roleData?.role && !window.location.pathname.includes('/complete-profile') && !window.location.pathname.includes('/auth')) {
+          // Les pédagos sont créés manuellement, donc on skip la redirection pour eux
+          if (!roleData?.role && roleData?.role !== 'pedago' && !window.location.pathname.includes('/complete-profile') && !window.location.pathname.includes('/auth')) {
             window.location.href = '/complete-profile';
           }
         }, 0);
@@ -63,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasRole = async (role: 'admin' | 'parent' | 'student' | 'pedago'): Promise<boolean> => {
     if (!user) return false;
-    
+
     const { data, error } = await supabase.rpc('has_role', {
       _user_id: user.id,
       _role: role,

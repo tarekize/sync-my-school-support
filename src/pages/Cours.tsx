@@ -84,6 +84,27 @@ const Cours = () => {
     }
   }, [subjectId]);
 
+  // Add realtime subscriptions for chapters and lessons updates (for admin/pedago)
+  useEffect(() => {
+    if (!adminNiveau) return;
+
+    const channel = supabase
+      .channel('chapters-lessons-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chapters' }, (payload) => {
+        console.log('Chapter change:', payload);
+        fetchCourse();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lessons' }, (payload) => {
+        console.log('Lesson change:', payload);
+        fetchCourse();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [adminNiveau, adminFiliere, subjectId]);
+
   const fetchCourse = async () => {
     try {
       const {
