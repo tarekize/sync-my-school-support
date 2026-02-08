@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { courseService, Chapter as DBChapter, Lesson as DBLesson } from "@/services/courseService";
@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, GraduationCap, LogOut, User as UserIcon, MessageCircle, X, BookOpen, Play, PenTool, Brain, Download, Check } from "lucide-react";
 import ChatBot from "@/components/ChatBot";
+import { ChapterFormDialog, DeleteChapterButton, LessonFormDialog, DeleteLessonButton } from "@/components/course/PedagoCRUD";
 import { useToast } from "@/hooks/use-toast";
 import {
   Breadcrumb,
@@ -75,16 +76,14 @@ const Cours = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string; }[]>([]);
   const [activeActivity, setActiveActivity] = useState<string | null>(null);
+  const [canManage, setCanManage] = useState(false);
+  const [filiereId, setFiliereId] = useState<string | null>(null);
 
   const subject = subjectId ? staticSubjects[subjectId] || { id: subjectId, name: subjectId, icon: "📖" } : null;
 
-  useEffect(() => {
-    if (subjectId) {
-      fetchCourse();
-    }
-  }, [subjectId]);
+  
 
-  const fetchCourse = async () => {
+  const fetchCourse = useCallback(async () => {
     try {
       const {
         data: { user },
@@ -102,10 +101,30 @@ const Cours = () => {
 
       setProfile(profileData as Profile | null);
 
+      // Check if user can manage content (admin or pedago)
+      const { data: rolesData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      
+      const roles = rolesData?.map(r => r.role) || [];
+      setCanManage(roles.includes("admin") || roles.includes("pedago"));
+
       // Use admin query params if present, otherwise use profile data
       const effectiveLevel = adminNiveau || profileData?.school_level || "";
       const effectiveFiliere = adminFiliere || (adminNiveau ? null : profileData?.filiere) || null;
       setSchoolLevel(effectiveLevel);
+
+      // Resolve filiere_id for CRUD
+      if (effectiveFiliere && effectiveLevel) {
+        const { data: fData } = await supabase
+          .from("filieres")
+          .select("id")
+          .eq("code", effectiveFiliere)
+          .eq("school_level", effectiveLevel as any)
+          .maybeSingle();
+        setFiliereId(fData?.id || null);
+      }
 
       // Fetch chapters from database
       if (subjectId && effectiveLevel) {
@@ -135,7 +154,6 @@ const Cours = () => {
             setActiveChapterIndex(0);
           }
         } else {
-          // No chapters in database
           setChapters([]);
         }
       } else {
@@ -152,7 +170,29 @@ const Cours = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [subjectId, adminNiveau, adminFiliere, navigate, toast]);
+
+  // Realtime subscription for chapters and lessons changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('curriculum-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chapters' }, () => {
+        fetchCourse();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lessons' }, () => {
+        fetchCourse();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchCourse]);
+
+  // Initial fetch
+  useEffect(() => {
+    if (subjectId) {
+      fetchCourse();
+    }
+  }, [subjectId, fetchCourse]);
 
   const handleMarkComplete = async () => {
     if (!activeChapter) return;
@@ -248,7 +288,7 @@ const Cours = () => {
     );
   }
 
-  if (chapters.length === 0) {
+  if (chapters.length === 0 && !canManage) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <h2 className="text-2xl font-bold mb-4">Cours non disponible</h2>
@@ -366,36 +406,60 @@ const Cours = () => {
 
         {/* Grid view - Chapter selection */}
         {!activeActivity && viewMode === "grid" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {chapters.map((chapter, index) => (
-              <Card
-                key={chapter.id}
-                className={`cursor-pointer transition-all hover:shadow-lg ${progress[chapter.id] ? 'border-green-500/50 bg-green-500/5' : ''
-                  }`}
-                onClick={() => {
-                  setActiveChapter(chapter);
-                  setActiveChapterIndex(index);
-                  setViewMode("content");
-                }}
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
-                      {index + 1}
-                    </span>
-                    {chapter.title}
-                    {progress[chapter.id] && (
-                      <Check className="h-5 w-5 text-green-500 ml-auto" />
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {chapter.content?.replace(/<[^>]*>/g, '').substring(0, 100)}...
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="space-y-4">
+            {canManage && (
+              <div className="flex justify-end">
+                <ChapterFormDialog
+                  schoolLevel={schoolLevel}
+                  filiereId={filiereId}
+                  subject={subjectId || "math"}
+                  onSaved={fetchCourse}
+                />
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {chapters.map((chapter, index) => (
+                <Card
+                  key={chapter.id}
+                  className={`cursor-pointer transition-all hover:shadow-lg ${progress[chapter.id] ? 'border-green-500/50 bg-green-500/5' : ''
+                    }`}
+                  onClick={() => {
+                    setActiveChapter(chapter);
+                    setActiveChapterIndex(index);
+                    setViewMode("content");
+                  }}
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
+                        {index + 1}
+                      </span>
+                      <span className="flex-1">{chapter.title}</span>
+                      {progress[chapter.id] && (
+                        <Check className="h-5 w-5 text-green-500" />
+                      )}
+                      {canManage && (
+                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                          <ChapterFormDialog
+                            schoolLevel={schoolLevel}
+                            filiereId={filiereId}
+                            subject={subjectId || "math"}
+                            onSaved={fetchCourse}
+                            chapter={{ id: chapter.id, title: chapter.title.split(' - ')[0], title_ar: chapter.title.includes(' - ') ? chapter.title.split(' - ')[1] : null, description: null, order_index: chapter.order_index }}
+                          />
+                          <DeleteChapterButton chapterId={chapter.id} onDeleted={fetchCourse} />
+                        </div>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {chapter.content?.replace(/<[^>]*>/g, '').substring(0, 100)}...
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
 
@@ -442,10 +506,15 @@ const Cours = () => {
                 </div>
 
                 {/* Interactive lessons list */}
-                {activeChapter.lessons && activeChapter.lessons.length > 0 && (
+                {(activeChapter.lessons && activeChapter.lessons.length > 0 || canManage) && (
                   <div className="mt-6 space-y-2">
-                    <h3 className="text-lg font-semibold mb-4">الدروس - Leçons</h3>
-                    {activeChapter.lessons.map((lesson, idx) => (
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold">الدروس - Leçons</h3>
+                      {canManage && (
+                        <LessonFormDialog chapterId={activeChapter.id} onSaved={fetchCourse} />
+                      )}
+                    </div>
+                    {activeChapter.lessons?.map((lesson, idx) => (
                       <div
                         key={lesson.id}
                         className="w-full text-right p-4 border rounded-lg hover:bg-accent/10 transition-colors cursor-pointer flex items-center gap-3"
@@ -457,6 +526,16 @@ const Cours = () => {
                           <p className="font-medium text-base">{lesson.titleAr}</p>
                           <p className="text-sm text-muted-foreground">{lesson.title}</p>
                         </div>
+                        {canManage && (
+                          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                            <LessonFormDialog
+                              chapterId={activeChapter.id}
+                              onSaved={fetchCourse}
+                              lesson={{ id: lesson.id, title: lesson.title, title_ar: lesson.titleAr !== lesson.title ? lesson.titleAr : null }}
+                            />
+                            <DeleteLessonButton lessonId={lesson.id} onDeleted={fetchCourse} />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -74,6 +74,7 @@ export default function Admin() {
   const { users, stats, loading, toggleUserStatus, deleteUser, refetch } = useAdminUsers();
   const { logs, loading: logsLoading } = useActivityLogs(100);
 
+  const [searchQueryPedagos, setSearchQueryPedagos] = useState("");
   const [searchQueryParents, setSearchQueryParents] = useState("");
   const [searchQueryStudents, setSearchQueryStudents] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -88,8 +89,8 @@ export default function Admin() {
   const filteredPedagos = pedagos.filter((user) => {
     const fullName = getFullName(user);
     return (
-      fullName.toLowerCase().includes(searchQueryParents.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchQueryParents.toLowerCase())
+      fullName.toLowerCase().includes(searchQueryPedagos.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchQueryPedagos.toLowerCase())
     );
   });
 
@@ -361,8 +362,8 @@ export default function Admin() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Rechercher un pédago..."
-                      value={searchQueryParents}
-                      onChange={(e) => setSearchQueryParents(e.target.value)}
+                      value={searchQueryPedagos}
+                      onChange={(e) => setSearchQueryPedagos(e.target.value)}
                       className="pl-9 w-full sm:w-64"
                     />
                   </div>

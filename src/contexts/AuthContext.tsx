@@ -46,8 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .maybeSingle();
 
           // Si pas de rôle et qu'on n'est pas déjà sur la page de complétion
+          // Les pédagos sont créés par l'admin avec un rôle déjà attribué, pas besoin de compléter le profil
           if (!roleData?.role && !window.location.pathname.includes('/complete-profile') && !window.location.pathname.includes('/auth')) {
             window.location.href = '/complete-profile';
+          }
+
+          // Rediriger les pédagos vers /liste-cours s'ils arrivent sur /complete-profile
+          if (roleData?.role === 'pedago' && window.location.pathname.includes('/complete-profile')) {
+            window.location.href = '/liste-cours';
           }
         }, 0);
       }

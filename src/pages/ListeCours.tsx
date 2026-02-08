@@ -269,15 +269,17 @@ const ListeCours = () => {
                       </Avatar>
                       <div className="text-left hidden md:block">
                         <p className="text-sm font-medium">{fullName}</p>
-                        <p className="text-xs text-muted-foreground">Administrateur</p>
+                        <p className="text-xs text-muted-foreground">{isAdmin ? 'Administrateur' : 'Pédagogue'}</p>
                       </div>
                     </div>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem onClick={() => navigate("/admin")}>
-                      <Users className="mr-2 h-4 w-4" />
-                      <span>Gestion Utilisateurs</span>
-                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={() => navigate("/admin")}>
+                        <Users className="mr-2 h-4 w-4" />
+                        <span>Gestion Utilisateurs</span>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => navigate("/dashboard")}>
                       <GraduationCap className="mr-2 h-4 w-4" />
                       <span>Tableau de bord</span>
@@ -369,8 +371,8 @@ const ListeCours = () => {
     );
   }
 
-  // Admin view - Filiere selection for selected level
-  if (isAdmin && selectedLevel) {
+  // Admin/Pédago view - Filiere selection for selected level
+  if ((isAdmin || isPedago) && selectedLevel) {
     const levelName = schoolLevels.find(l => l.id === selectedLevel)?.name || selectedLevel;
     const levelColor = schoolLevels.find(l => l.id === selectedLevel)?.color || "#8B5CF6";
 
@@ -398,15 +400,17 @@ const ListeCours = () => {
                       </Avatar>
                       <div className="text-left hidden md:block">
                         <p className="text-sm font-medium">{fullName}</p>
-                        <p className="text-xs text-muted-foreground">Administrateur</p>
+                        <p className="text-xs text-muted-foreground">{isAdmin ? 'Administrateur' : 'Pédagogue'}</p>
                       </div>
                     </div>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem onClick={() => navigate("/admin")}>
-                      <Users className="mr-2 h-4 w-4" />
-                      <span>Gestion Utilisateurs</span>
-                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={() => navigate("/admin")}>
+                        <Users className="mr-2 h-4 w-4" />
+                        <span>Gestion Utilisateurs</span>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => navigate("/dashboard")}>
                       <GraduationCap className="mr-2 h-4 w-4" />
                       <span>Tableau de bord</span>
